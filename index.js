@@ -219,7 +219,7 @@ const getIcon = async (filename) => {
             let fontSize = 12;
             let textWidth = sourceImage.bitmap.width;
             while (!namePrinted && fontSize > 9) {
-                await Jimp.loadFont(`./fonts/Bender-Bold-${fontSize}.fnt`).then(font => {
+                await Jimp.loadFont(path.join(__dirname, 'fonts', `Bender-Bold-${fontSize}.fnt`)).then(font => {
                     try {
                         textWidth = Jimp.measureText(font, shortName);
                         if (textWidth < sourceImage.bitmap.width) {
@@ -246,7 +246,7 @@ const getIcon = async (filename) => {
                     if (lastSlash > lastSpace) cutoff = lastSlash;
                     if (cutoff == -1) break;
                     clippedName = clippedName.substring(0, cutoff);
-                    await Jimp.loadFont(`./fonts/Bender-Bold-12.fnt`).then(font => {
+                    await Jimp.loadFont(path.join(__dirname, 'fonts', `Bender-Bold-12.fnt`)).then(font => {
                         try {
                             textWidth = Jimp.measureText(font, clippedName);
                             if (textWidth < sourceImage.bitmap.width) {
@@ -263,7 +263,7 @@ const getIcon = async (filename) => {
                         }
                     });
                     if (namePrinted) break;
-                    await Jimp.loadFont(`./fonts/Bender-Bold-11.fnt`).then(font => {
+                    await Jimp.loadFont(path.join(__dirname, 'fonts', `Bender-Bold-11.fnt`)).then(font => {
                         try {
                             textWidth = Jimp.measureText(font, clippedName);
                             if (textWidth < sourceImage.bitmap.width) {
@@ -290,7 +290,7 @@ const getIcon = async (filename) => {
                 if (cutoff == -1) cutoff = clippedName.length;
                 while (!namePrinted) {
                     clippedName = clippedName.substring(0, clippedName.length-1);
-                    await Jimp.loadFont(`./fonts/Bender-Bold-12.fnt`).then(font => {
+                    await Jimp.loadFont(path.join(__dirname, 'fonts', `Bender-Bold-12.fnt`)).then(font => {
                         try {
                             textWidth = Jimp.measureText(font, clippedName);
                             if (textWidth < sourceImage.bitmap.width) {
@@ -307,7 +307,7 @@ const getIcon = async (filename) => {
                         }
                     });
                     if (namePrinted) break;
-                    await Jimp.loadFont(`./fonts/Bender-Bold-11.fnt`).then(font => {
+                    await Jimp.loadFont(path.join(__dirname, 'fonts', `Bender-Bold-11.fnt`)).then(font => {
                         try {
                             textWidth = Jimp.measureText(font, clippedName);
                             if (textWidth < sourceImage.bitmap.width) {
