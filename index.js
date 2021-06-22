@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 const fs = require('fs');
 const path = require('path');
 const process = require('process');
@@ -172,7 +174,7 @@ const getIcon = async (filename) => {
     } else if (lang.templates[itemId.filename]) {
         shortName = lang.templates[itemId.filename].ShortName+'';
     }
-    
+
     const sourceImage = await Jimp.read(path.join(iconCacheFolder, filename));
     new Jimp(62, 62, async (err, checks) => {
         checks.scan(0, 0, checks.bitmap.width, checks.bitmap.height, function(x, y) {
