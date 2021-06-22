@@ -153,6 +153,9 @@ const getIcon = async (filename) => {
         console.log(`No itemId found for ${filename}`);
         return false;
     }
+    if (process.argv[2] && process.argv[2] != itemId.filename) {
+        return false;
+    }
     if (itemId.preset && itemId.color == itemId.filename) {
         //this is the default preset for an item;
         defaultPresets[itemId.color] = true;
