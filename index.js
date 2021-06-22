@@ -190,7 +190,7 @@ const getIcon = async (filename) => {
                 mode: Jimp.BLEND_DESTINATION_OVER,
             });
 
-        image.write(path.join(__dirname, 'images', `${itemId.filename}-icon.jpg`));
+        image.write(path.join('./', 'images', `${itemId.filename}-icon.jpg`));
     });
 
     new Jimp(sourceImage.bitmap.width, sourceImage.bitmap.height, async (err, checks) => {
@@ -326,7 +326,7 @@ const getIcon = async (filename) => {
                 }
             }
             if (!namePrinted) {
-                fs.writeFile(path.join('logging', `${shortName.replace(/[^a-zA-Z0-9]/g, '')}-${itemId.filename}-not-printed.json`), JSON.stringify({shortName: shortName, id: itemId.filename}, null, 4), 'utf8', (err) => {
+                fs.writeFile(path.join('./', 'logging', `${shortName.replace(/[^a-zA-Z0-9]/g, '')}-${itemId.filename}-not-printed.json`), JSON.stringify({shortName: shortName, id: itemId.filename}, null, 4), 'utf8', (err) => {
                     if (err) {
                         console.log(`Error writing no prices found file: ${err}`);
                     }
@@ -334,7 +334,7 @@ const getIcon = async (filename) => {
             }
         }
 
-        image.write(path.join(__dirname, 'images', `${itemId.filename}-grid-image.jpg`));
+        image.write(path.join('./', 'images', `${itemId.filename}-grid-image.jpg`));
     });
 }
 
@@ -349,11 +349,12 @@ const getIcon = async (filename) => {
         return;
     }
     const files = fs.readdirSync(iconCacheFolder);
+
     try {
-        let imgDir = path.join(__dirname, 'images');
+        let imgDir = path.join('./', 'images');
         if (!fs.existsSync(imgDir)) fs.mkdirSync(imgDir);
 
-        const logDir = path.join(__dirname, 'logging');
+        const logDir = path.join('./', 'logging');
         if (!fs.existsSync(logDir)) fs.mkdirSync(logDir);
     } catch (mkdirError){
         // Do nothing
