@@ -1,4 +1,4 @@
-Name: Publish to NPM
+name: Publish to NPM
 on: push
 
 jobs:
