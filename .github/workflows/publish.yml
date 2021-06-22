@@ -1,3 +1,4 @@
+Name: Publish to NPM
 on: push
 
 jobs:
