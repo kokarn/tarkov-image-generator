@@ -10,6 +10,8 @@ const Jimp = require('jimp');
 let bsgData = false;
 let lang = false;
 let presets = false;
+let missingIconLink = [];
+let missingGridImage = [];
 
 let defaultPresets = {};
 
@@ -338,6 +340,14 @@ const getIcon = async (filename) => {
         }
 
         image.write(path.join('./', 'images', `${itemId.filename}-grid-image.jpg`));
+
+        if(missingGridImage.includes(itemId.filename)){
+            console.log(`${itemId.filename} should be upladed for grid-image`);
+        }
+
+        if(missingIconLink.includes(itemId.filename)){
+            console.log(`${itemId.filename} should be upladed for icon`);
+        }
     });
 }
 
@@ -347,11 +357,33 @@ const getIcon = async (filename) => {
         lang = JSON.parse((await got('https://dev.sp-tarkov.com/SPT-AKI/Server/raw/branch/development/project/assets/database/locales/global/en.json')).body);
         //presets = JSON.parse((await got('https://raw.githack.com/TarkovTracker/tarkovdata/master/item_presets.json')).body);
         presets = JSON.parse((await got('https://raw.githack.com/Razzmatazzz/tarkovdata/master/item_presets.json')).body);
+        const response = await got.post('https://tarkov-tools.com/graphql', {
+            body: JSON.stringify({query: `{
+                itemsByType(type: any){
+                  id
+                  iconLink
+                  gridImageLink
+                }
+              }`
+            }),
+            responseType: 'json',
+        });
+        response.body.data.itemsByType.map((itemData) => {
+            if(!itemData.gridImageLink){
+                missingGridImage.push(itemData.id)
+            }
+
+            if(!itemData.iconLink){
+                missingIconLink.push(itemData.id)
+            }
+        });
     } catch (error) {
         console.log(error);
         return;
     }
     const files = fs.readdirSync(iconCacheFolder);
+
+    console.log(`Found ${missingGridImage.length} items missing a grid image and ${missingIconLink.length} missing an icon`);
 
     try {
         let imgDir = path.join('./', 'images');
