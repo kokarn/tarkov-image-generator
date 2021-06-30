@@ -343,7 +343,7 @@ const getIcon = async (filename) => {
 
 (async () => {
     try {
-        bsgData = JSON.parse((await got('https://dev.sp-tarkov.com/SPT-AKI/Server/raw/branch/development/project/assets/database/templates/items.json')).body);
+        bsgData = JSON.parse((await got('https://raw.githack.com/kokarn/tarkov-data-manager/master/bsg-data.json')).body);
         lang = JSON.parse((await got('https://dev.sp-tarkov.com/SPT-AKI/Server/raw/branch/development/project/assets/database/locales/global/en.json')).body);
         //presets = JSON.parse((await got('https://raw.githack.com/TarkovTracker/tarkovdata/master/item_presets.json')).body);
         presets = JSON.parse((await got('https://raw.githack.com/Razzmatazzz/tarkovdata/master/item_presets.json')).body);
