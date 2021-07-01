@@ -8,10 +8,11 @@ const got = require('got');
 const Jimp = require('jimp');
 
 let bsgData = false;
-let lang = false;
+//let lang = false;
 let presets = false;
 let missingIconLink = [];
 let missingGridImage = [];
+const shortNames = {};
 
 let defaultPresets = {};
 
@@ -118,7 +119,7 @@ const getItemId = (itemIndex) => {
                 }
                 if (matchedParts.length == preset.parts.length) {
                     console.log(`Found matching preset: ${preset.name}`);
-                    if (lang.templates[preset.baseId].ShortName == preset.name) {
+                    if (shortNames[preset.baseId] == preset.name) {
                         return {color: preset.baseId, filename: preset.baseId, preset: true};
                     }
                     return {color: preset.baseId, filename: presetId, preset: true};
@@ -176,8 +177,8 @@ const getIcon = async (filename) => {
     let shortName = false;
     if (presets[itemId.filename]) {
         shortName = presets[itemId.filename].name+'';
-    } else if (lang.templates[itemId.filename]) {
-        shortName = lang.templates[itemId.filename].ShortName+'';
+    } else if (shortNames[itemId.filename]) {
+        shortName = shortNames[itemId.filename]+'';
     }
 
     const sourceImage = await Jimp.read(path.join(iconCacheFolder, filename));
@@ -196,6 +197,11 @@ const getIcon = async (filename) => {
             });
 
         image.write(path.join('./', 'images', `${itemId.filename}-icon.jpg`));
+
+        if(missingIconLink.includes(itemId.filename)){
+            console.log(`${itemId.filename} should be upladed for icon`);
+            image.write(path.join('./', 'images-missing', `${itemId.filename}-icon.jpg`));
+        }
     });
 
     new Jimp(sourceImage.bitmap.width, sourceImage.bitmap.height, async (err, checks) => {
@@ -343,10 +349,7 @@ const getIcon = async (filename) => {
 
         if(missingGridImage.includes(itemId.filename)){
             console.log(`${itemId.filename} should be upladed for grid-image`);
-        }
-
-        if(missingIconLink.includes(itemId.filename)){
-            console.log(`${itemId.filename} should be upladed for icon`);
+            image.write(path.join('./', 'images-missing', `${itemId.filename}-grid-image.jpg`));
         }
     });
 }
@@ -354,13 +357,14 @@ const getIcon = async (filename) => {
 (async () => {
     try {
         bsgData = JSON.parse((await got('https://raw.githack.com/kokarn/tarkov-data-manager/master/bsg-data.json')).body);
-        lang = JSON.parse((await got('https://dev.sp-tarkov.com/SPT-AKI/Server/raw/branch/development/project/assets/database/locales/global/en.json')).body);
+        //lang = JSON.parse((await got('https://dev.sp-tarkov.com/SPT-AKI/Server/raw/branch/development/project/assets/database/locales/global/en.json')).body);
         //presets = JSON.parse((await got('https://raw.githack.com/TarkovTracker/tarkovdata/master/item_presets.json')).body);
         presets = JSON.parse((await got('https://raw.githack.com/Razzmatazzz/tarkovdata/master/item_presets.json')).body);
         const response = await got.post('https://tarkov-tools.com/graphql', {
             body: JSON.stringify({query: `{
                 itemsByType(type: any){
                   id
+                  shortName
                   iconLink
                   gridImageLink
                 }
@@ -376,6 +380,8 @@ const getIcon = async (filename) => {
             if(!itemData.iconLink){
                 missingIconLink.push(itemData.id)
             }
+
+            shortNames[itemData.id] = itemData.shortName;
         });
     } catch (error) {
         console.log(error);
@@ -386,8 +392,11 @@ const getIcon = async (filename) => {
     console.log(`Found ${missingGridImage.length} items missing a grid image and ${missingIconLink.length} missing an icon`);
 
     try {
-        let imgDir = path.join('./', 'images');
+        const imgDir = path.join('./', 'images');
         if (!fs.existsSync(imgDir)) fs.mkdirSync(imgDir);
+
+        const missingImgDir = path.join('./', 'images-missing');
+        if (!fs.existsSync(missingImgDir)) fs.mkdirSync(missingImgDir);
 
         const logDir = path.join('./', 'logging');
         if (!fs.existsSync(logDir)) fs.mkdirSync(logDir);
