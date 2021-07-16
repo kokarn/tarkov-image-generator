@@ -8,7 +8,6 @@ const got = require('got');
 const Jimp = require('jimp');
 
 let bsgData = false;
-//let lang = false;
 let presets = false;
 let missingIconLink = [];
 let missingGridImage = [];
@@ -119,7 +118,8 @@ const getItemId = (itemIndex) => {
                 }
                 if (matchedParts.length == preset.parts.length) {
                     console.log(`Found matching preset: ${preset.name}`);
-                    if (shortNames[preset.baseId] == preset.name) {
+                    //if (shortNames[preset.baseId] == preset.name) {
+                    if (preset.default) {
                         return {color: preset.baseId, filename: preset.baseId, preset: true};
                     }
                     return {color: preset.baseId, filename: presetId, preset: true};
@@ -357,7 +357,6 @@ const getIcon = async (filename) => {
 (async () => {
     try {
         bsgData = JSON.parse((await got('https://raw.githack.com/kokarn/tarkov-data-manager/master/bsg-data.json')).body);
-        //lang = JSON.parse((await got('https://dev.sp-tarkov.com/SPT-AKI/Server/raw/branch/development/project/assets/database/locales/global/en.json')).body);
         //presets = JSON.parse((await got('https://raw.githack.com/TarkovTracker/tarkovdata/master/item_presets.json')).body);
         presets = JSON.parse((await got('https://raw.githack.com/Razzmatazzz/tarkovdata/master/item_presets.json')).body);
         const response = await got.post('https://tarkov-tools.com/graphql', {
