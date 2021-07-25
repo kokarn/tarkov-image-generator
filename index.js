@@ -7,6 +7,8 @@ const got = require('got');
 
 const Jimp = require('jimp');
 
+const uploadImages = require('./upload-images');
+
 let bsgData = false;
 let presets = false;
 let missingIconLink = [];
@@ -411,4 +413,6 @@ const getIcon = async (filename) => {
 
         // break;
     }
+
+    uploadImages();
 })();
