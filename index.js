@@ -397,7 +397,19 @@ const getIcon = async (filename) => {
         if (!fs.existsSync(imgDir)) fs.mkdirSync(imgDir);
 
         const missingImgDir = path.join('./', 'images-missing');
-        if (!fs.existsSync(missingImgDir)) fs.mkdirSync(missingImgDir);
+        if (!fs.existsSync(missingImgDir)) {
+            fs.mkdirSync(missingImgDir);
+        } else {
+            console.log('Removing old missing images...');
+            const oldMissingFiles = fs.readdirSync(missingImgDir);
+            for (let i = 0; i < oldMissingFiles.length; i++) {
+                fs.unlink(oldMissingFiles[i], (err) => {
+                    if (err) {
+                        throw err;
+                    }
+                });
+            }
+        }
 
         const logDir = path.join('./', 'logging');
         if (!fs.existsSync(logDir)) fs.mkdirSync(logDir);
