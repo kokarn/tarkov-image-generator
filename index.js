@@ -403,7 +403,7 @@ const getIcon = async (filename) => {
             console.log('Removing old missing images...');
             const oldMissingFiles = fs.readdirSync(missingImgDir);
             for (let i = 0; i < oldMissingFiles.length; i++) {
-                fs.unlink(oldMissingFiles[i], (err) => {
+                fs.unlink(path.join(missingImgDir, oldMissingFiles[i]), (err) => {
                     if (err) {
                         throw err;
                     }
