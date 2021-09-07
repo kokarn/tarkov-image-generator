@@ -6,14 +6,19 @@ const process = require('process');
 const got = require('got');
 
 const Jimp = require('jimp');
+const encode = require('hashcode').hashCode;
 
 const uploadImages = require('./upload-images');
+const hashCalc = require('./hash-calculator');
 
 let bsgData = false;
 let presets = false;
+let sptPresets = false;
 let missingIconLink = [];
 let missingGridImage = [];
 const shortNames = {};
+const itemsByHash = {};
+const itemsById = {};
 
 let defaultPresets = {};
 
@@ -59,74 +64,14 @@ const colors = {
     ],
 };
 
-const presetHasPart = (preset, itemId) => {
-    for (let i = 0; i < preset.parts.length; i++) {
-        if (preset.parts[i].id == itemId) {
-            return true;
-        }
-    }
-    return false;
-}
-
 const getItemId = (itemIndex) => {
     for(const key in iconData){
         if(iconData[key] != itemIndex){
             continue;
         }
-        if (key.trim().length == 24) {
-            return {color: key.trim(), filename: key.trim()};
-        }
-        const baseItemId = key.substring(0,24);
-        if (process.argv[2] && process.argv[2] != baseItemId) {
-            continue;
-        }
-        const components = key.substring(25, key.length).split(' , ');
-        const parts = [baseItemId];
-        let foldedStock = false;
-        for (let i = 0; i < components.length; i++) {
-            const comp = components[i].split(': ');
-            const slotName = comp[0];
-            if (comp.length > 1) {
-                if (!slotName) continue;
-                const partSections = comp[1].split(':');
-                let partId = partSections[0];
-                if (slotName == 'mod_magazine') {
-                    // partSections[1] is either 1 or 3; unknown what it means
-                    // 1 might be empty; 3 might have at least some rounds
-                } else if (slotName == 'mod_stock') {
-                    // partSections[1] is either True or False; meaning unknown
-                } else if (slotName == 'cartridges' && partId.includes(' ')) {
-                    const rounds = partId.split(' ');
-                    parts.push(...rounds);
-                    continue;
-                }
-                parts.push(partId);
-            }
-            foldedStock = comp[0] == ':True';
-        }
-        if (parts.length == 1) {
-            return {color: parts[0], filename: parts[0], preset: false};
-        }
-        for (const presetId in presets) {
-            const matchedParts = [];
-            const preset = presets[presetId];
-            if (preset.baseId == baseItemId && parts.length == preset.parts.length && !foldedStock) {
-                // the base weapon is the same and the total parts are the same
-                // we also don't want images of folded stocks
-                for (let i=0; i < parts.length; i++) {
-                    if (presetHasPart(preset, parts[i])) {
-                        matchedParts.push(parts[i]);
-                    }
-                }
-                if (matchedParts.length == preset.parts.length) {
-                    console.log(`Found matching preset: ${preset.name}`);
-                    //if (shortNames[preset.baseId] == preset.name) {
-                    if (preset.default) {
-                        return {color: preset.baseId, filename: preset.baseId, preset: true};
-                    }
-                    return {color: preset.baseId, filename: presetId, preset: true};
-                }
-            }
+        if (itemsByHash[key]) {
+            const item = itemsByHash[key];
+            return {color: item.id, filename: item.id};
         }
         return false;
     }
@@ -356,12 +301,51 @@ const getIcon = async (filename) => {
     });
 }
 
+const testItems = {
+    'ak-12 mag': {
+  	    id: '5bed61680db834001d2c45ab',
+        hash: 129279493,
+        type: 'mag'
+    },
+    'sr1mp mag': {
+  	    id: '59f99a7d86f7745b134aa97b',
+        hash: -1157986124,
+        type: 'mag'
+    },
+    'stanag': {
+        id: '55d4887d4bdc2d962f8b4570',
+        hash: -304995614,
+        type: 'mag'
+    },
+    'gpnvg': {
+        id: '5c0558060db834001b735271',
+        hash: 1444116773,
+        type: 'nvg'
+    },
+    'as val': {
+        id: '57c44b372459772d2b39b8ce',
+        hash: 658560108,
+        type: 'weapon'
+    },
+    'makarov': {
+        id: '5448bd6b4bdc2dfc2f8b4569',
+      hash: 2111427698,
+      type: 'weapon'
+    },
+    'aks74u': {
+        id: '57dc2fa62459775949412633',
+      hash: 592229284,
+      type: 'weapon'
+    }
+};
+
 (async () => {
     try {
         //bsgData = JSON.parse((await got('https://raw.githack.com/kokarn/tarkov-data-manager/master/bsg-data.json')).body);
         bsgData = JSON.parse((await got('https://dev.sp-tarkov.com/SPT-AKI/Server/raw/branch/development/project/assets/database/templates/items.json')).body);
         //presets = JSON.parse((await got('https://raw.githack.com/TarkovTracker/tarkovdata/master/item_presets.json')).body);
         presets = JSON.parse((await got('https://raw.githack.com/Razzmatazzz/tarkovdata/master/item_presets.json')).body);
+        sptPresets = JSON.parse((await got('https://dev.sp-tarkov.com/SPT-AKI/Server/raw/branch/development/project/assets/database/globals.json')).body)['ItemPresets'];
         const response = await got.post('https://tarkov-tools.com/graphql', {
             body: JSON.stringify({query: `{
                 itemsByType(type: any){
@@ -369,21 +353,43 @@ const getIcon = async (filename) => {
                   shortName
                   iconLink
                   gridImageLink
+                  types
                 }
               }`
             }),
             responseType: 'json',
         });
+        hashCalc.init(bsgData, sptPresets, presets);
+        //process.argv[2] = testItems['makarov'].id;
         response.body.data.itemsByType.map((itemData) => {
             if(!itemData.gridImageLink){
-                missingGridImage.push(itemData.id)
+                missingGridImage.push(itemData.id);
             }
 
             if(!itemData.iconLink){
-                missingIconLink.push(itemData.id)
+                missingIconLink.push(itemData.id);
             }
-
             shortNames[itemData.id] = itemData.shortName;
+            itemData['backgroundColor'] = 'default';
+            if(bsgData[itemData.id]){
+                if (bsgData[itemData.id]._props) {
+                    if (colors[bsgData[itemData.id]._props.BackgroundColor]) {
+                        itemData['backgroundColor'] = bsgData[itemData.id]._props.BackgroundColor;
+                    }
+                }
+            }
+            itemsById[itemData.id] = itemData;
+
+            try {
+                const hash = hashCalc.getItemHash(itemData.id);
+                if (process.argv[2] && process.argv[2] == itemData.id) {
+                    //console.log(hash);
+                    //process.exit();
+                }
+                itemsByHash[hash.toString()] = itemData;
+            } catch (error) {
+                console.log(`Error hashing ${itemData.id}: ${error}`);
+            }
         });
     } catch (error) {
         console.log(error);

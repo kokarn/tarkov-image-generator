@@ -15,6 +15,7 @@
   "dependencies": {
     "form-data": "^4.0.0",
     "got": "^11.8.2",
-    "jimp": "^0.16.1"
+    "jimp": "^0.16.1",
+    "hashcode": "^1.0.3"
   }
 }
