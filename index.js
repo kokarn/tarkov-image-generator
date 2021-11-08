@@ -22,7 +22,7 @@ const itemsById = {};
 
 let defaultPresets = {};
 
-const iconCacheFolder = process.env.LOCALAPPDATA+'\\Temp\\Battlestate Games\\EscapeFromTarkov\\Icon Cache\\'
+const iconCacheFolder = process.env.LOCALAPPDATA+'\\Temp\\Battlestate Games\\EscapeFromTarkov\\Icon Cache\\live\\'
 const iconData = require(iconCacheFolder+'index.json');
 
 const colors = {
@@ -329,13 +329,13 @@ const testItems = {
     },
     'makarov': {
         id: '5448bd6b4bdc2dfc2f8b4569',
-      hash: 2111427698,
-      type: 'weapon'
+        hash: 2111427698,
+        type: 'weapon'
     },
     'aks74u': {
         id: '57dc2fa62459775949412633',
-      hash: 592229284,
-      type: 'weapon'
+        hash: 592229284,
+        type: 'weapon'
     }
 };
 
