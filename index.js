@@ -65,6 +65,9 @@ const colors = {
 };
 
 const getItemId = (itemIndex) => {
+    if (process.argv[3] && process.argv[3] == itemIndex) {
+        return {color: process.argv[2], filename: process.argv[2]};
+    } 
     for(const key in iconData){
         if(iconData[key] != itemIndex){
             continue;
