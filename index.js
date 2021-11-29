@@ -305,6 +305,9 @@ const getIcon = async (filename) => {
             image.write(path.join('./', 'generated-images-missing', `${itemId.filename}-grid-image.jpg`));
         }
     });
+    if (generateItemId == itemId.filename) {
+        shutdown = true;
+    }
 }
 
 const testItems = {
