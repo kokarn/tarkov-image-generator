@@ -382,18 +382,6 @@ const testItems = {
             return;
         }
     }
-    ready = true;
-})();
-
-module.exports = async (id, index) => {
-    itemId = id;
-    imageIndex = index;
-    while (!ready && !abort) {
-        await sleep(100);
-    }
-    if (abort) {
-        return Promise.reject(abort);
-    }
     try {
         const response = await got.post('https://tarkov-tools.com/graphql', {
             body: JSON.stringify({query: `{
@@ -440,8 +428,20 @@ module.exports = async (id, index) => {
             }
         });
     } catch (error) {
-        console.log(error);
-        return Promise.reject(error);
+        abort = error;
+        return;
+    }
+    ready = true;
+})();
+
+module.exports = async (id, index) => {
+    itemId = id;
+    imageIndex = index;
+    while (!ready && !abort) {
+        await sleep(100);
+    }
+    if (abort) {
+        return Promise.reject(abort);
     }
     const files = fs.readdirSync(iconCacheFolder);
 
