@@ -7,7 +7,7 @@
     "tarkov-image-generator": "index.js"
   },
   "scripts": {
-    "start": "node index.js"
+    "start": "node generate.js"
   },
   "keywords": [],
   "author": "",

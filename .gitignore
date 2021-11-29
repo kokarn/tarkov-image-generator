@@ -1,3 +1,7 @@
 node_modules/
 images*
+generated-images*
 logging
+items.json
+item_presets.json
+spt_presets.json

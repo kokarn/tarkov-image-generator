@@ -7,7 +7,7 @@ const FormData = require('form-data');
 const ENDPOINT = 'https://tarkov-data-manager.herokuapp.com/suggest-image';
 
 module.exports = async () => {
-    const uploadFiles = fs.readdirSync(path.join('./', 'images-missing'));
+    const uploadFiles = fs.readdirSync(path.join('./', 'generated-images-missing'));
 
     for(const filename of uploadFiles){
         const form = new FormData();
@@ -21,7 +21,7 @@ module.exports = async () => {
 
         form.append('id', matches.groups.id);
         form.append('type', matches.groups.type);
-        form.append(matches.groups.type, fs.createReadStream(path.join('./', 'images-missing', filename)));
+        form.append(matches.groups.type, fs.createReadStream(path.join('./', 'generated-images-missing', filename)));
 
         try {
             console.log(`Uploading new ${matches.groups.type} for ${matches.groups.id}`);

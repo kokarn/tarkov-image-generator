@@ -6,10 +6,10 @@ const process = require('process');
 const got = require('got');
 
 const Jimp = require('jimp');
-const encode = require('hashcode').hashCode;
 
 const uploadImages = require('./upload-images');
 const hashCalc = require('./hash-calculator');
+const sleep = require('./sleep');
 
 let bsgData = false;
 let presets = false;
@@ -20,10 +20,15 @@ const shortNames = {};
 const itemsByHash = {};
 const itemsById = {};
 
-let defaultPresets = {};
+let shutdown = false;
 
 const iconCacheFolder = process.env.LOCALAPPDATA+'\\Temp\\Battlestate Games\\EscapeFromTarkov\\Icon Cache\\live\\'
 const iconData = require(iconCacheFolder+'index.json');
+
+let generateItemId = false;
+let imageIndex = false;
+let ready = false;
+let abort = false;
 
 const colors = {
     violet: [
@@ -65,8 +70,14 @@ const colors = {
 };
 
 const getItemId = (itemIndex) => {
-    if (process.argv[3] && process.argv[3] == itemIndex) {
-        return {color: process.argv[2], filename: process.argv[2]};
+    if (imageIndex && imageIndex == itemIndex) {
+        shutdown = true;
+        const itemId = itemId;
+        let colorId = ItemId;
+        if (presets[itemId]) {
+            colorId = presets[itemId].baseId;
+        }
+        return {color: colorId, filename: itemId};
     } 
     for(const key in iconData){
         if(iconData[key] != itemIndex){
@@ -106,15 +117,7 @@ const getIcon = async (filename) => {
         console.log(`No itemId found for ${filename}`);
         return false;
     }
-    if (process.argv[2] && process.argv[2] != itemId.filename) {
-        return false;
-    }
-    if (itemId.preset && itemId.color == itemId.filename) {
-        //this is the default preset for an item;
-        defaultPresets[itemId.color] = true;
-    }
-    if (!itemId.preset && itemId.color == itemId.filename && defaultPresets[itemId.color]) {
-        // if we already have the preset for a base item, don't make the icon for the base item
+    if (generateItemId && generateItemId != itemId.filename) {
         return false;
     }
     const itemColors = getItemColors(itemId.color);
@@ -146,11 +149,11 @@ const getIcon = async (filename) => {
                 mode: Jimp.BLEND_DESTINATION_OVER,
             });
 
-        image.write(path.join('./', 'images', `${itemId.filename}-icon.jpg`));
+        image.write(path.join('./', 'generated-images', `${itemId.filename}-icon.jpg`));
 
         if(missingIconLink.includes(itemId.filename)){
             console.log(`${itemId.filename} should be upladed for icon`);
-            image.write(path.join('./', 'images-missing', `${itemId.filename}-icon.jpg`));
+            image.write(path.join('./', 'generated-images-missing', `${itemId.filename}-icon.jpg`));
         }
     });
 
@@ -295,11 +298,11 @@ const getIcon = async (filename) => {
             }
         }
 
-        image.write(path.join('./', 'images', `${itemId.filename}-grid-image.jpg`));
+        image.write(path.join('./', 'generated-images', `${itemId.filename}-grid-image.jpg`));
 
         if(missingGridImage.includes(itemId.filename)){
             console.log(`${itemId.filename} should be upladed for grid-image`);
-            image.write(path.join('./', 'images-missing', `${itemId.filename}-grid-image.jpg`));
+            image.write(path.join('./', 'generated-images-missing', `${itemId.filename}-grid-image.jpg`));
         }
     });
 }
@@ -344,11 +347,51 @@ const testItems = {
 
 (async () => {
     try {
-        //bsgData = JSON.parse((await got('https://raw.githack.com/kokarn/tarkov-data-manager/master/bsg-data.json')).body);
-        bsgData = JSON.parse((await got('https://dev.sp-tarkov.com/SPT-AKI/Server/raw/branch/development/project/assets/database/templates/items.json')).body);
-        //presets = JSON.parse((await got('https://raw.githack.com/TarkovTracker/tarkovdata/master/item_presets.json')).body);
-        presets = JSON.parse((await got('https://raw.githack.com/Razzmatazzz/tarkovdata/master/item_presets.json')).body);
-        sptPresets = JSON.parse((await got('https://dev.sp-tarkov.com/SPT-AKI/Server/raw/branch/development/project/assets/database/globals.json')).body)['ItemPresets'];
+        bsgData = JSON.parse(fs.readFileSync('./items.json', 'utf8'));
+    } catch (error) {
+        try {
+            bsgData = JSON.parse((await got('https://dev.sp-tarkov.com/SPT-AKI/Server/raw/branch/development/project/assets/database/templates/items.json')).body);
+            fs.writeFileSync('./items.json', JSON.stringify(bsgData, null, 4));
+        } catch (error) {
+            abort = error;
+            return;
+        }
+    }
+    try {
+        presets = JSON.parse(fs.readFileSync('./item_presets.json', 'utf8'));
+    } catch (error) {
+        try {
+            presets = JSON.parse((await got('https://raw.githubusercontent.com/Razzmatazzz/tarkovdata/master/item_presets.json')).body);
+            fs.writeFileSync('./item_presets.json', JSON.stringify(presets, null, 4));
+        } catch (error) {
+            abort = error;
+            return;
+        }
+    }
+    try {
+        sptPresets = JSON.parse(fs.readFileSync('./spt_presets.json', 'utf8'));
+    } catch (error) {
+        try {
+            sptPresets = JSON.parse((await got('https://dev.sp-tarkov.com/SPT-AKI/Server/raw/branch/development/project/assets/database/globals.json')).body)['ItemPresets'];
+            fs.writeFileSync('./spt_presets.json', JSON.stringify(sptPresets, null, 4));
+        } catch (error) {
+            abort = error;
+            return;
+        }
+    }
+    ready = true;
+})();
+
+module.exports = async (id, index) => {
+    itemId = id;
+    imageIndex = index;
+    while (!ready && !abort) {
+        await sleep(100);
+    }
+    if (abort) {
+        return Promise.reject(abort);
+    }
+    try {
         const response = await got.post('https://tarkov-tools.com/graphql', {
             body: JSON.stringify({query: `{
                 itemsByType(type: any){
@@ -363,7 +406,6 @@ const testItems = {
             responseType: 'json',
         });
         hashCalc.init(bsgData, sptPresets, presets);
-        //process.argv[2] = testItems['makarov'].id;
         response.body.data.itemsByType.map((itemData) => {
             if(!itemData.gridImageLink){
                 missingGridImage.push(itemData.id);
@@ -385,10 +427,10 @@ const testItems = {
 
             try {
                 const hash = hashCalc.getItemHash(itemData.id);
-                if (process.argv[2] && process.argv[2] == itemData.id) {
-                    //console.log(hash);
-                    //process.exit();
-                }
+                /*if (itemId && itemId == itemData.id) {
+                    console.log(hash);
+                    process.exit();
+                }*/
                 itemsByHash[hash.toString()] = itemData;
             } catch (error) {
                 console.log(`Error hashing ${itemData.id}: ${error}`);
@@ -396,17 +438,17 @@ const testItems = {
         });
     } catch (error) {
         console.log(error);
-        return;
+        return Promise.reject(error);
     }
     const files = fs.readdirSync(iconCacheFolder);
 
     console.log(`Found ${missingGridImage.length} items missing a grid image and ${missingIconLink.length} missing an icon`);
 
     try {
-        const imgDir = path.join('./', 'images');
+        const imgDir = path.join('./', 'generated-images');
         if (!fs.existsSync(imgDir)) fs.mkdirSync(imgDir);
 
-        const missingImgDir = path.join('./', 'images-missing');
+        const missingImgDir = path.join('./', 'generated-images-missing');
         if (!fs.existsSync(missingImgDir)) {
             fs.mkdirSync(missingImgDir);
         } else {
@@ -421,20 +463,18 @@ const testItems = {
             }
         }
 
-        const logDir = path.join('./', 'logging');
-        if (!fs.existsSync(logDir)) fs.mkdirSync(logDir);
     } catch (mkdirError){
         // Do nothing
         console.log(mkdirError);
-        return;
+        return Promise.reject(mkdirError);
     }
 
-    for(let i = 0; i < files.length; i = i + 1){
+    for(let i = 0; i < files.length && !shutdown; i = i + 1){
         console.log(`Processing ${i + 1}/${files.length}`);
         await getIcon(files[i]);
 
         // break;
     }
 
-    uploadImages();
-})();
+    await uploadImages();
+};
