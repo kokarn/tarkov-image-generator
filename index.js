@@ -25,8 +25,6 @@ let shutdown = false;
 const iconCacheFolder = process.env.LOCALAPPDATA+'\\Temp\\Battlestate Games\\EscapeFromTarkov\\Icon Cache\\live\\'
 const iconData = require(iconCacheFolder+'index.json');
 
-let generateItemId = false;
-let imageIndex = false;
 let ready = false;
 let abort = false;
 
@@ -69,8 +67,8 @@ const colors = {
     ],
 };
 
-const getItemId = (itemIndex) => {
-    if (imageIndex && imageIndex == itemIndex) {
+const getItemId = (itemIndex, forceImageIndex) => {
+    if (forceImageIndex && forceImageIndex == itemIndex) {
         shutdown = true;
         const itemId = itemId;
         let colorId = ItemId;
@@ -111,13 +109,13 @@ const getItemColors = (itemId) => {
     return colors[bsgData[itemId]._props.BackgroundColor];
 };
 
-const getIcon = async (filename) => {
-    const itemId = getItemId(path.basename(filename, '.png'));
+const getIcon = async (filename, targetItemId, forceImageIndex) => {
+    const itemId = getItemId(path.basename(filename, '.png'), forceImageIndex);
     if (!itemId) {
         console.log(`No itemId found for ${filename}`);
         return false;
     }
-    if (generateItemId && generateItemId != itemId.filename) {
+    if (targetItemId && targetItemId != itemId.filename) {
         return false;
     }
     const itemColors = getItemColors(itemId.color);
@@ -305,9 +303,10 @@ const getIcon = async (filename) => {
             image.write(path.join('./', 'generated-images-missing', `${itemId.filename}-grid-image.jpg`));
         }
     });
-    if (generateItemId == itemId.filename) {
+    if (targetItemId == itemId.filename) {
         shutdown = true;
     }
+    return true;
 }
 
 const testItems = {
@@ -434,9 +433,7 @@ const testItems = {
     ready = true;
 })();
 
-module.exports = async (id, index) => {
-    itemId = id;
-    imageIndex = index;
+module.exports = async (targetItemId, forceImageIndex) => {
     while (!ready && !abort) {
         await sleep(100);
     }
@@ -472,12 +469,12 @@ module.exports = async (id, index) => {
         return Promise.reject(mkdirError);
     }
 
+    let imagesGenerated = false;
     for(let i = 0; i < files.length && !shutdown; i = i + 1){
         console.log(`Processing ${i + 1}/${files.length}`);
-        await getIcon(files[i]);
-
-        // break;
+        imagesGenerated = await getIcon(files[i], targetItemId, forceImageIndex) || imagesGenerated;
     }
 
     await uploadImages();
+    return imagesGenerated;
 };
