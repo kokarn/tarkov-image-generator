@@ -9,7 +9,6 @@ const Jimp = require('jimp');
 
 const uploadImages = require('./upload-images');
 const hashCalc = require('./hash-calculator');
-const sleep = require('./sleep');
 
 let bsgData = false;
 let presets = false;
@@ -26,7 +25,6 @@ const iconCacheFolder = process.env.LOCALAPPDATA+'\\Temp\\Battlestate Games\\Esc
 const iconData = require(iconCacheFolder+'index.json');
 
 let ready = false;
-let abort = false;
 
 const colors = {
     violet: [
@@ -361,8 +359,7 @@ const initialize = async () => {
             fs.writeFileSync('./items.json', JSON.stringify(bsgData, null, 4));
         } catch (downloadError) {
             if (error.message != 'stale') {
-                abort = downloadError;
-                return;
+                return Promise.reject(downloadError);
             }
         }
     }
@@ -378,8 +375,7 @@ const initialize = async () => {
             fs.writeFileSync('./item_presets.json', JSON.stringify(presets, null, 4));
         } catch (downloadError) {
             if (error.message != 'stale') {
-                abort = downloadError;
-                return;
+                return Promise.reject(downloadError);
             }
         }
     }
@@ -395,8 +391,7 @@ const initialize = async () => {
             fs.writeFileSync('./spt_presets.json', JSON.stringify(sptPresets, null, 4));
         } catch (downloadError) {
             if (error.message != 'stale') {
-                abort = downloadError;
-                return;
+                return Promise.reject(downloadError);
             }
         }
     }
@@ -446,19 +441,14 @@ const initialize = async () => {
             }
         });
     } catch (error) {
-        abort = error;
-        return;
+        return Promise.reject(error);
     }
-    abort = false;
     ready = true;
 };
 
 const generate = async (targetItemId, forceImageIndex) => {
-    while (!ready && !abort) {
-        await sleep(100);
-    }
-    if (abort) {
-        return Promise.reject(abort);
+    if (!ready) {
+        return Promise.reject(new Error('Must call initializeImageGenerator before generating images'));
     }
     const files = fs.readdirSync(iconCacheFolder);
 
@@ -498,10 +488,6 @@ const generate = async (targetItemId, forceImageIndex) => {
     await uploadImages();
     return imagesGenerated;
 };
-
-(async () => {
-    await initialize();
-})();
 
 module.exports = {
     initializeImageGenerator: initialize,
