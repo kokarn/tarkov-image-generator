@@ -65,11 +65,11 @@ const colors = {
     ],
 };
 
-const getItemId = (itemIndex, forceImageIndex) => {
+const getItemId = (itemIndex, targetItemId, forceImageIndex) => {
     if (forceImageIndex && forceImageIndex == itemIndex) {
         shutdown = true;
-        const itemId = itemId;
-        let colorId = ItemId;
+        const itemId = targetItemId;
+        let colorId = targetItemId;
         if (presets[itemId]) {
             colorId = presets[itemId].baseId;
         }
@@ -108,7 +108,7 @@ const getItemColors = (itemId) => {
 };
 
 const getIcon = async (filename, targetItemId, forceImageIndex) => {
-    const itemId = getItemId(path.basename(filename, '.png'), forceImageIndex);
+    const itemId = getItemId(path.basename(filename, '.png'), targetItemId, forceImageIndex);
     if (!itemId) {
         console.log(`No itemId found for ${filename}`);
         return false;
