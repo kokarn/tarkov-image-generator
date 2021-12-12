@@ -2,7 +2,7 @@
   "name": "tarkov-image-generator",
   "version": "1.2.5",
   "description": "",
-  "main": "index.js",
+  "main": "generate.js",
   "bin": {
     "tarkov-image-generator": "index.js"
   },
