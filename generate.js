@@ -131,7 +131,11 @@ const getIcon = async (filename, targetItemId, forceImageIndex) => {
     }
 
     const sourceImage = await Jimp.read(path.join(iconCacheFolder, filename));
-    new Jimp(62, 62, async (err, checks) => {
+
+    // create icon
+    const iconPromise = new Promise(async resolve => {
+        const promises = [];
+        const checks = new Jimp(62, 62);
         checks.scan(0, 0, checks.bitmap.width, checks.bitmap.height, function(x, y) {
             checks.setPixelColor(Jimp.cssColorToHex(itemColors[(x + y) % 2]), x, y);
         });
@@ -145,15 +149,20 @@ const getIcon = async (filename, targetItemId, forceImageIndex) => {
                 mode: Jimp.BLEND_DESTINATION_OVER,
             });
 
-        image.write(path.join('./', 'generated-images', `${itemId.filename}-icon.jpg`));
+        promises.push(image.writeAsync(path.join('./', 'generated-images', `${itemId.filename}-icon.jpg`)));
 
         if(missingIconLink.includes(itemId.filename)){
             console.log(`${itemId.filename} should be upladed for icon`);
-            image.write(path.join('./', 'generated-images-missing', `${itemId.filename}-icon.jpg`));
+            promises.push(image.writeAsync(path.join('./', 'generated-images-missing', `${itemId.filename}-icon.jpg`)));
         }
+        await Promise.all(promises);
+        resolve(true);
     });
 
-    new Jimp(sourceImage.bitmap.width, sourceImage.bitmap.height, async (err, checks) => {
+    // create grid image
+    const gridImagePromise = new Promise(async resolve => {
+        const promises = [];
+        const checks = new Jimp(sourceImage.bitmap.width, sourceImage.bitmap.height);
         checks.scan(0, 0, checks.bitmap.width, checks.bitmap.height, function(x, y) {
             checks.setPixelColor(Jimp.cssColorToHex(itemColors[(x + y) % 2]), x, y);
         });
@@ -294,16 +303,19 @@ const getIcon = async (filename, targetItemId, forceImageIndex) => {
             }
         }
 
-        image.write(path.join('./', 'generated-images', `${itemId.filename}-grid-image.jpg`));
+        promises.push(image.writeAsync(path.join('./', 'generated-images', `${itemId.filename}-grid-image.jpg`)));
 
         if(missingGridImage.includes(itemId.filename)){
             console.log(`${itemId.filename} should be upladed for grid-image`);
-            image.write(path.join('./', 'generated-images-missing', `${itemId.filename}-grid-image.jpg`));
+            promises.push(image.writeAsync(path.join('./', 'generated-images-missing', `${itemId.filename}-grid-image.jpg`)));
         }
+        await Promise.all(promises);
+        resolve(true);
     });
     if (targetItemId == itemId.filename) {
         shutdown = true;
     }
+    await Promise.all([iconPromise, gridImagePromise]);
     return true;
 }
 
