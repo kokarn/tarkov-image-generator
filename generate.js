@@ -111,16 +111,16 @@ const getIcon = async (filename, targetItemId, forceImageIndex) => {
     const itemId = getItemId(path.basename(filename, '.png'), targetItemId, forceImageIndex);
     if (!itemId) {
         console.log(`No itemId found for ${filename}`);
-        return false;
+        return Promise.reject(new Error('No itemId found'));
     }
     if (targetItemId && targetItemId != itemId.filename) {
-        return false;
+        return Promise.reject(new Error(`itemId (${itemId.filename}) does not match ${targetItemId}`));
     }
     const itemColors = getItemColors(itemId.color);
 
     if(!itemColors){
         console.log(`No colors found for ${itemId.color} (${filename})`);
-        return false;
+        return Promise.reject(new Error(`No colors found for ${itemId.color}`));
     }
 
     let shortName = false;
@@ -491,14 +491,23 @@ const generate = async (targetItemId, forceImageIndex) => {
         return Promise.reject(mkdirError);
     }
 
-    let imagesGenerated = false;
+    let shutdownError = false;
     for(let i = 0; i < files.length && !shutdown; i = i + 1){
-        console.log(`Processing ${i + 1}/${files.length}`);
-        imagesGenerated = await getIcon(files[i], targetItemId, forceImageIndex) || imagesGenerated;
+        try {
+            console.log(`Processing ${i + 1}/${files.length}`);
+            await getIcon(files[i], targetItemId, forceImageIndex);
+            shutdownError = false;
+        } catch (error) {
+            if (shutdown) {
+                shutdownError = error;
+            }
+        }
     }
 
     await uploadImages();
-    return imagesGenerated;
+    if (shutdownError) {
+        return Promise.reject(shutdownError);
+    }
 };
 
 module.exports = {
