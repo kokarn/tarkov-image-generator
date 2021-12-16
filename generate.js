@@ -19,8 +19,6 @@ const shortNames = {};
 const itemsByHash = {};
 const itemsById = {};
 
-let shutdown = false;
-
 const iconCacheFolder = process.env.LOCALAPPDATA+'\\Temp\\Battlestate Games\\EscapeFromTarkov\\Icon Cache\\live\\'
 let iconData = {};
 
@@ -67,7 +65,7 @@ const colors = {
 
 const getItemId = (itemIndex, options) => {
     if (options.forceImageIndex && options.forceImageIndex == itemIndex) {
-        shutdown = true;
+        options.shutdown = true;
         const itemId = options.targetItemId;
         let colorId = options.targetItemId;
         if (presets[itemId]) {
@@ -313,7 +311,7 @@ const getIcon = async (filename, options) => {
         resolve(true);
     });
     if (options.targetItemId == itemId.filename) {
-        shutdown = true;
+        options.shutdown = true;
     }
     await Promise.all([iconPromise, gridImagePromise]);
     return true;
@@ -480,6 +478,7 @@ const generate = async (options, forceImageIndex) => {
             return Promise.reject(new Error('You must specify the target item id to use forceImageIndex'));
         }
     }
+    options.shutdown = false;
     if (!ready) {
         return Promise.reject(new Error('Must call initializeImageGenerator before generating images'));
     }
@@ -518,14 +517,14 @@ const generate = async (options, forceImageIndex) => {
 
     let successCount = 0;
     let shutdownError = false;
-    for(let i = 0; i < files.length && !shutdown; i = i + 1){
+    for(let i = 0; i < files.length && !options.shutdown; i = i + 1){
         try {
             console.log(`Processing ${i + 1}/${files.length}`);
             await getIcon(files[i], options);
             successCount++;
             shutdownError = false;
         } catch (error) {
-            if (shutdown) {
+            if (options.shutdown) {
                 shutdownError = error;
             }
         }
