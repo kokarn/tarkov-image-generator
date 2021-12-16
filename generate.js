@@ -22,7 +22,7 @@ const itemsById = {};
 let shutdown = false;
 
 const iconCacheFolder = process.env.LOCALAPPDATA+'\\Temp\\Battlestate Games\\EscapeFromTarkov\\Icon Cache\\live\\'
-const iconData = require(iconCacheFolder+'index.json');
+let iconData = {};
 
 let ready = false;
 
@@ -357,6 +357,10 @@ const testItems = {
     }
 };
 
+const refreshCache = () => {
+    iconData = require(iconCacheFolder+'index.json');
+};
+
 const initialize = async () => {
     ready = false;
     try {
@@ -455,6 +459,11 @@ const initialize = async () => {
     } catch (error) {
         return Promise.reject(error);
     }
+    try {
+        refreshCache();
+    } catch (error) {
+        console.log('Icon cache is missing; call refreshCache() before generating icons');
+    }
     ready = true;
 };
 
@@ -512,5 +521,6 @@ const generate = async (targetItemId, forceImageIndex) => {
 
 module.exports = {
     initializeImageGenerator: initialize,
-    generateImages: generate
+    generateImages: generate,
+    refreshCache: refreshCache
 };
