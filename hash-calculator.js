@@ -105,7 +105,7 @@ const getSingleItemHash = (itemId, magazineInfo) => {
         hash ^= 23;
     } else if (items[itemId] && items[itemId]._parent == '5448bc234bdc2d3c308b4569') {
         // magazine
-        hash ^= getStringHash('cartridges');
+        //hash ^= getStringHash('cartridges');
         if (!magazineInfo) {
             hash ^= 24 << 2;
         } else {

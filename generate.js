@@ -447,7 +447,7 @@ const initialize = async () => {
 
             try {
                 const hash = hashCalc.getItemHash(itemData.id);
-                /*if (itemId && itemId == itemData.id) {
+                /*if (itemData.id == '55d4887d4bdc2d962f8b4570') {
                     console.log(hash);
                     process.exit();
                 }*/
