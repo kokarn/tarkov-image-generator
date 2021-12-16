@@ -65,11 +65,11 @@ const colors = {
     ],
 };
 
-const getItemId = (itemIndex, targetItemId, forceImageIndex) => {
-    if (forceImageIndex && forceImageIndex == itemIndex) {
+const getItemId = (itemIndex, options) => {
+    if (options.forceImageIndex && options.forceImageIndex == itemIndex) {
         shutdown = true;
-        const itemId = targetItemId;
-        let colorId = targetItemId;
+        const itemId = options.targetItemId;
+        let colorId = options.targetItemId;
         if (presets[itemId]) {
             colorId = presets[itemId].baseId;
         }
@@ -107,14 +107,14 @@ const getItemColors = (itemId) => {
     return colors[bsgData[itemId]._props.BackgroundColor];
 };
 
-const getIcon = async (filename, targetItemId, forceImageIndex) => {
-    const itemId = getItemId(path.basename(filename, '.png'), targetItemId, forceImageIndex);
+const getIcon = async (filename, options) => {
+    const itemId = getItemId(path.basename(filename, '.png'), options);
     if (!itemId) {
         console.log(`No itemId found for ${filename}`);
         return Promise.reject(new Error('No itemId found'));
     }
-    if (targetItemId && targetItemId != itemId.filename) {
-        return Promise.reject(new Error(`itemId (${itemId.filename}) does not match ${targetItemId}`));
+    if (options.targetItemId && options.targetItemId != itemId.filename) {
+        return Promise.reject(new Error(`itemId (${itemId.filename}) does not match ${options.targetItemId}`));
     }
     const itemColors = getItemColors(itemId.color);
 
@@ -312,7 +312,7 @@ const getIcon = async (filename, targetItemId, forceImageIndex) => {
         await Promise.all(promises);
         resolve(true);
     });
-    if (targetItemId == itemId.filename) {
+    if (options.targetItemId == itemId.filename) {
         shutdown = true;
     }
     await Promise.all([iconPromise, gridImagePromise]);
@@ -469,11 +469,25 @@ const initialize = async () => {
     ready = true;
 };
 
-const generate = async (targetItemId, forceImageIndex) => {
+const generate = async (options, forceImageIndex) => {
+    if (!options) options = {targetItemId: false, forceImageIndex: false};
+    if (typeof options === 'string') {
+        options = {targetItemId: options, forceImageIndex: false};
+    }
+    if (forceImageIndex) {
+        options.forceImageIndex = forceImageIndex;
+        if (!options.targetItemId) {
+            return Promise.reject(new Error('You must specify the target item id to use forceImageIndex'));
+        }
+    }
     if (!ready) {
         return Promise.reject(new Error('Must call initializeImageGenerator before generating images'));
     }
     const files = fs.readdirSync(iconCacheFolder);
+
+    if (files.length == 0) {
+        return Promise.reject(`No files found in ${iconCacheFolder}`);
+    }
 
     console.log(`Found ${missingGridImage.length} items missing a grid image and ${missingIconLink.length} missing an icon`);
 
@@ -507,7 +521,7 @@ const generate = async (targetItemId, forceImageIndex) => {
     for(let i = 0; i < files.length && !shutdown; i = i + 1){
         try {
             console.log(`Processing ${i + 1}/${files.length}`);
-            await getIcon(files[i], targetItemId, forceImageIndex);
+            await getIcon(files[i], options);
             successCount++;
             shutdownError = false;
         } catch (error) {
@@ -516,8 +530,8 @@ const generate = async (targetItemId, forceImageIndex) => {
             }
         }
     }
-    if (successCount == 0 && targetItemId) {
-        return Promise.reject(new Error(`Found no matching icons for ${targetItemId}`));
+    if (successCount == 0 && options.targetItemId) {
+        return Promise.reject(new Error(`Found no matching icons for ${options.targetItemId}`));
     }
 
     const uploadCount = await uploadImages();
