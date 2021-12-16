@@ -426,6 +426,8 @@ const initialize = async () => {
             responseType: 'json',
         });
         hashCalc.init(bsgData, sptPresets, presets);
+        missingGridImage = [];
+        missingIconLink = [];
         response.body.data.itemsByType.map((itemData) => {
             if(!itemData.gridImageLink){
                 missingGridImage.push(itemData.id);
@@ -500,11 +502,13 @@ const generate = async (targetItemId, forceImageIndex) => {
         return Promise.reject(mkdirError);
     }
 
+    let successCount = 0;
     let shutdownError = false;
     for(let i = 0; i < files.length && !shutdown; i = i + 1){
         try {
             console.log(`Processing ${i + 1}/${files.length}`);
             await getIcon(files[i], targetItemId, forceImageIndex);
+            successCount++;
             shutdownError = false;
         } catch (error) {
             if (shutdown) {
@@ -512,11 +516,15 @@ const generate = async (targetItemId, forceImageIndex) => {
             }
         }
     }
+    if (successCount == 0 && targetItemId) {
+        return Promise.reject(new Error(`Found no matching icons for ${targetItemId}`));
+    }
 
-    await uploadImages();
+    const uploadCount = await uploadImages();
     if (shutdownError) {
         return Promise.reject(shutdownError);
     }
+    return uploadCount;
 };
 
 module.exports = {

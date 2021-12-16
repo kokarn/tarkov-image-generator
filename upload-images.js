@@ -9,6 +9,7 @@ const ENDPOINT = 'https://tarkov-data-manager.herokuapp.com/suggest-image';
 module.exports = async () => {
     const uploadFiles = fs.readdirSync(path.join('./', 'generated-images-missing'));
 
+    let uploadCount = 0;
     for(const filename of uploadFiles){
         const form = new FormData();
         const matches = filename.match(/(?<id>.{24})-(?<type>.+?)\.jpg/);
@@ -29,6 +30,7 @@ module.exports = async () => {
             await got.post(ENDPOINT, {
                 body: form,
             });
+            uploadCount++;
         } catch (someError){
             if(!someError.response){
                 console.log(someError);
@@ -38,5 +40,6 @@ module.exports = async () => {
             }
         }
     }
+    return uploadCount;
 };
 
