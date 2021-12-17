@@ -3,6 +3,7 @@ let presets = false;
 let ttPresets = false;
 const weaponTypes = [
     '5447b5cf4bdc2d65278b4567', // pistol
+    '617f1ef5e8b54b0998387733', // revolver
     '5447b5e04bdc2d62278b4567', // smg
     '5447b5f14bdc2d61278b4567', // assault rifle
     '5447b5fc4bdc2d87278b4567', // assault carbine
