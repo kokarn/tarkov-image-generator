@@ -97,14 +97,15 @@ const getSingleItemHash = (itemId, magazineInfo) => {
     let hash = 0;
     if (!itemId) return hash;
     hash ^= getStringHash(itemId);
+    if (!items[itemId]) return hash;
 
-    if (items[itemId] && items[itemId]._parent == '5a2c3a9486f774688b05e574') {
+    if (items[itemId]._parent == '5a2c3a9486f774688b05e574') {
         // hash for nvgs
         hash ^= 23;
-    } else if (items[itemId] && items[itemId]._parent == '57bef4c42459772e8d35a53b') {
+    } else if (items[itemId]._parent == '57bef4c42459772e8d35a53b') {
         // ArmoredEquipment
         hash ^= 23;
-    } else if (items[itemId] && items[itemId]._parent == '5448bc234bdc2d3c308b4569') {
+    } else if (items[itemId]._parent == '5448bc234bdc2d3c308b4569' || items[itemId]._parent == '610720f290b75a49ff2e5e25') {
         // magazine
         //hash ^= getStringHash('cartridges');
         if (!magazineInfo) {
