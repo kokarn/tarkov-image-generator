@@ -15,6 +15,11 @@ const weaponTypes = [
     '5447bee84bdc2dc3278b4569', // special weapon (??)
 ];
 
+const magazineTypes = [
+    '5448bc234bdc2d3c308b4569', // regular magazine
+    '610720f290b75a49ff2e5e25' // cylinder magazine
+];
+
 // <3 to Moritz
 // https://github.com/RatScanner/RatStash/blob/master/RatStash/CacheHashIndexParser.cs
 const getStringHash = (str) => {
@@ -45,14 +50,15 @@ const ToInt32 = (x) => {
 
 const getItemHash = (itemId) => {
     if (!items || !presets || !ttPresets) throw new Error('Must initialize with items and presets!');
-    const item = items[itemId];
     let hash = 17;
     hash ^= getSingleItemHash(itemId);
+    const item = items[itemId];
+    if (!item) return hash;
 
-    if (item && weaponTypes.includes(item._parent)) {
+    if (weaponTypes.includes(item._parent)) {
         hash = getContainerHash(hash, item);
     }
-    if (item && item._parent == '5485a8684bdc2da71d8b4567') {
+    if (item._parent == '5485a8684bdc2da71d8b4567') {
         //ammo
         hash ^= (27 * 56);
     } 
@@ -97,15 +103,16 @@ const getSingleItemHash = (itemId, magazineInfo) => {
     let hash = 0;
     if (!itemId) return hash;
     hash ^= getStringHash(itemId);
-    if (!items[itemId]) return hash;
+    const item = items[itemId];
+    if (!item) return hash;
 
-    if (items[itemId]._parent == '5a2c3a9486f774688b05e574') {
+    if (item._parent == '5a2c3a9486f774688b05e574') {
         // hash for nvgs
         hash ^= 23;
-    } else if (items[itemId]._parent == '57bef4c42459772e8d35a53b') {
+    } else if (item._parent == '57bef4c42459772e8d35a53b') {
         // ArmoredEquipment
         hash ^= 23;
-    } else if (items[itemId]._parent == '5448bc234bdc2d3c308b4569' || items[itemId]._parent == '610720f290b75a49ff2e5e25') {
+    } else if (magazineTypes.includes(item._parent)) {
         // magazine
         //hash ^= getStringHash('cartridges');
         if (!magazineInfo) {
