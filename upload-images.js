@@ -12,7 +12,7 @@ module.exports = async () => {
     let uploadCount = 0;
     for(const filename of uploadFiles){
         const form = new FormData();
-        const matches = filename.match(/(?<id>.{24})-(?<type>.+?)\.jpg/);
+        const matches = filename.match(/(?<id>.{24})-(?<type>.+?)\.(?:jpg|png)/);
 
         if(!matches){
             console.log(`Found junkfile ${filename}, skipping`);

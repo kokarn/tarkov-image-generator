@@ -15,6 +15,7 @@ let presets = false;
 let sptPresets = false;
 let missingIconLink = [];
 let missingGridImage = [];
+let missingBaseImage = [];
 const shortNames = {};
 const itemsByHash = {};
 const itemsById = {};
@@ -130,8 +131,20 @@ const getIcon = async (filename, options) => {
 
     const sourceImage = await Jimp.read(path.join(iconCacheFolder, filename));
 
+    const baseImagePromise = new Promise(resolve => {
+        if(missingBaseImage.includes(itemId.filename)){
+            console.log(`${itemId.filename} should be uploaded for base-image`);
+            fs.copyFileSync(path.join(iconCacheFolder, filename), path.join('./', 'generated-images-missing', `${itemId.filename}-base-image.png`));
+        }
+        resolve(true);
+    });
+
     // create icon
     const iconPromise = new Promise(async resolve => {
+        if (options.generateOnlyMissing && !missingIconLink.includes(itemId.filename)) {
+            resolve(true);
+            return;
+        }
         const promises = [];
         const checks = new Jimp(62, 62);
         checks.scan(0, 0, checks.bitmap.width, checks.bitmap.height, function(x, y) {
@@ -150,7 +163,7 @@ const getIcon = async (filename, options) => {
         promises.push(image.writeAsync(path.join('./', 'generated-images', `${itemId.filename}-icon.jpg`)));
 
         if(missingIconLink.includes(itemId.filename)){
-            console.log(`${itemId.filename} should be upladed for icon`);
+            console.log(`${itemId.filename} should be uploaded for icon`);
             promises.push(image.writeAsync(path.join('./', 'generated-images-missing', `${itemId.filename}-icon.jpg`)));
         }
         await Promise.all(promises);
@@ -159,6 +172,10 @@ const getIcon = async (filename, options) => {
 
     // create grid image
     const gridImagePromise = new Promise(async resolve => {
+        if (options.generateOnlyMissing && !missingGridImage.includes(itemId.filename)) {
+            resolve(true);
+            return;
+        }
         const promises = [];
         const checks = new Jimp(sourceImage.bitmap.width, sourceImage.bitmap.height);
         checks.scan(0, 0, checks.bitmap.width, checks.bitmap.height, function(x, y) {
@@ -304,7 +321,7 @@ const getIcon = async (filename, options) => {
         promises.push(image.writeAsync(path.join('./', 'generated-images', `${itemId.filename}-grid-image.jpg`)));
 
         if(missingGridImage.includes(itemId.filename)){
-            console.log(`${itemId.filename} should be upladed for grid-image`);
+            console.log(`${itemId.filename} should be uploaded for grid-image`);
             promises.push(image.writeAsync(path.join('./', 'generated-images-missing', `${itemId.filename}-grid-image.jpg`)));
         }
         await Promise.all(promises);
@@ -313,7 +330,7 @@ const getIcon = async (filename, options) => {
     if (options.targetItemId == itemId.filename) {
         options.shutdown = true;
     }
-    await Promise.all([iconPromise, gridImagePromise]);
+    await Promise.all([baseImagePromise, iconPromise, gridImagePromise]);
     return true;
 }
 
@@ -409,6 +426,12 @@ const initialize = async () => {
             }
         }
     }
+    let foundBaseImages = [];
+    try {
+        foundBaseImages = JSON.parse((await got('https://tarkov-data-manager.herokuapp.com/data/existing-bases.json')).body);
+    } catch (error) {
+        console.log(`Error downloading found base image list: ${error}`);
+    }
     try {
         const response = await got.post('https://tarkov-tools.com/graphql', {
             body: JSON.stringify({query: `{
@@ -426,13 +449,18 @@ const initialize = async () => {
         hashCalc.init(bsgData, sptPresets, presets);
         missingGridImage = [];
         missingIconLink = [];
+        missingBaseImage = [];
         response.body.data.itemsByType.map((itemData) => {
+            if (itemData.types.includes('disabled')) return;
             if(!itemData.gridImageLink){
                 missingGridImage.push(itemData.id);
             }
 
             if(!itemData.iconLink){
                 missingIconLink.push(itemData.id);
+            }
+            if (!foundBaseImages.includes(itemData.id)) {
+                missingBaseImage.push(itemData.id);
             }
             shortNames[itemData.id] = itemData.shortName;
             itemData['backgroundColor'] = 'default';
@@ -468,9 +496,12 @@ const initialize = async () => {
 };
 
 const generate = async (options, forceImageIndex) => {
-    if (!options) options = {targetItemId: false, forceImageIndex: false};
+    const defaultOptions = {targetItemId: false, forceImageIndex: false, generateOnlyMissing: false, shutdown: false};
+    if (!options) options = defaultOptions;
     if (typeof options === 'string') {
-        options = {targetItemId: options, forceImageIndex: false};
+        options = {
+            targetItemId: options
+        };
     }
     if (forceImageIndex) {
         options.forceImageIndex = forceImageIndex;
@@ -478,7 +509,10 @@ const generate = async (options, forceImageIndex) => {
             return Promise.reject(new Error('You must specify the target item id to use forceImageIndex'));
         }
     }
-    options.shutdown = false;
+    options = {
+        ...defaultOptions,
+        ...options
+    };
     if (!ready) {
         return Promise.reject(new Error('Must call initializeImageGenerator before generating images'));
     }
