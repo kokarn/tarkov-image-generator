@@ -471,7 +471,6 @@ const initialize = async () => {
                     }
                 }
             }
-            itemsById[itemData.id] = itemData;
 
             try {
                 const hash = hashCalc.getItemHash(itemData.id);
@@ -479,10 +478,12 @@ const initialize = async () => {
                     console.log(hash);
                     process.exit();
                 }*/
+                itemData.hash = hash;
                 itemsByHash[hash.toString()] = itemData;
             } catch (error) {
                 console.log(`Error hashing ${itemData.id}: ${error}`);
             }
+            itemsById[itemData.id] = itemData;
         });
     } catch (error) {
         return Promise.reject(error);
@@ -516,11 +517,6 @@ const generate = async (options, forceImageIndex) => {
     if (!ready) {
         return Promise.reject(new Error('Must call initializeImageGenerator before generating images'));
     }
-    const files = fs.readdirSync(iconCacheFolder);
-
-    if (files.length == 0) {
-        return Promise.reject(`No files found in ${iconCacheFolder}`);
-    }
 
     console.log(`Found ${missingGridImage.length} items missing a grid image and ${missingIconLink.length} missing an icon`);
 
@@ -551,15 +547,36 @@ const generate = async (options, forceImageIndex) => {
 
     let successCount = 0;
     let shutdownError = false;
-    for(let i = 0; i < files.length && !options.shutdown; i = i + 1){
+    if (options.targetItemId) {
+        if (!itemsById[options.targetItemId]) return Promise.reject(`Item ${options.targetItemId} is unknown`);
+        if (!itemsById[options.targetItemId].hash) return Promise.reject(`Item ${options.targetItemId} has no hash`);
+        const hash = itemsById[options.targetItemId].hash;
+        if (!iconData[hash]) return Promise.reject(`Item ${options.targetItemId} hash ${hash} not found in cache`);
+        const fileName = `${iconData[hash]}.png`;
         try {
-            console.log(`Processing ${i + 1}/${files.length}`);
-            await getIcon(files[i], options);
+            await getIcon(fileName, options);
             successCount++;
-            shutdownError = false;
         } catch (error) {
-            if (options.shutdown) {
-                shutdownError = error;
+            console.log(error);
+            shutdownError = error;
+        }
+        options.shutdown = true;
+    } else {
+        const files = fs.readdirSync(iconCacheFolder);
+
+        if (files.length == 0) {
+            return Promise.reject(`No files found in ${iconCacheFolder}`);
+        }
+        for(let i = 0; i < files.length && !options.shutdown; i = i + 1){
+            try {
+                console.log(`Processing ${i + 1}/${files.length}`);
+                await getIcon(files[i], options);
+                successCount++;
+                shutdownError = false;
+            } catch (error) {
+                if (options.shutdown) {
+                    shutdownError = error;
+                }
             }
         }
     }
