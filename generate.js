@@ -426,7 +426,7 @@ const initialize = async () => {
             }
         }
     }
-    let foundBaseImages = [];
+    let foundBaseImages = false;
     try {
         foundBaseImages = JSON.parse((await got('https://tarkov-data-manager.herokuapp.com/data/existing-bases.json')).body);
     } catch (error) {
@@ -459,7 +459,7 @@ const initialize = async () => {
             if(!itemData.iconLink){
                 missingIconLink.push(itemData.id);
             }
-            if (!foundBaseImages.includes(itemData.id)) {
+            if (foundBaseImages && !foundBaseImages.includes(itemData.id)) {
                 missingBaseImage.push(itemData.id);
             }
             shortNames[itemData.id] = itemData.shortName;

@@ -10,6 +10,7 @@ module.exports = async () => {
     const uploadFiles = fs.readdirSync(path.join('./', 'generated-images-missing'));
 
     let uploadCount = 0;
+    let currentUploads = [];
     for(const filename of uploadFiles){
         const form = new FormData();
         const matches = filename.match(/(?<id>.{24})-(?<type>.+?)\.(?:jpg|png)/);
@@ -27,10 +28,15 @@ module.exports = async () => {
         try {
             console.log(`Uploading new ${matches.groups.type} for ${matches.groups.id}`);
 
-            await got.post(ENDPOINT, {
+            const upload = got.post(ENDPOINT, {
                 body: form,
             });
-            uploadCount++;
+            currentUploads.push(upload);
+            if (currentUploads.length >= 1) {
+                await Promise.all(currentUploads);
+                uploadCount += currentUploads.length;
+                currentUploads = [];
+            }
         } catch (someError){
             if(!someError.response){
                 console.log(someError);
