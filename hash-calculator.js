@@ -75,7 +75,7 @@ const buildPreset = (preset) => {
         }
     }
     getContainedSlots(built);
-    console.log(slots);
+    //console.log(slots);
     return slots;
 };
 
