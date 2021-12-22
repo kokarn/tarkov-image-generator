@@ -20,6 +20,65 @@ const magazineTypes = [
     '610720f290b75a49ff2e5e25' // cylinder magazine
 ];
 
+const buildPreset = (preset) => {
+    let built = {};
+    let baseSlot = false;
+    for (let i = 0; i < preset._items.length; i++) {
+        const part = preset._items[i];
+        newPart = {
+            partId: part._id,
+            itemId: part._tpl,
+            contains: {}
+        }
+        built[part._id] = newPart;
+        if (part.slotId) {
+            built[part.parentId].contains[part.slotId] = newPart;
+        } else {
+            baseSlot = part._id;
+        }
+    }
+    built = built[baseSlot];
+    const slots = [];
+    const getContainedSlots = (part) => {
+        const item = items[part.itemId];
+        if (item._props.Slots) {
+            for (let s = 0; s < item._props.Slots.length; s++) {
+                const slot = item._props.Slots[s];
+                const mergedSlot = {
+                    name: slot._name,
+                    item: false
+                };
+                slots.push(mergedSlot);
+                if (part.contains[slot._name]) {
+                    mergedSlot.item = part.contains[slot._name].itemId;
+                    getContainedSlots(part.contains[slot._name]);
+                }
+            }
+        }
+        if (item._props.Cartridges) {
+            for (let s = 0; s < item._props.Cartridges.length; s++) {
+                const slot = item._props.Cartridges[s];
+                slots.push({
+                    name: slot._name,
+                    item: false
+                });
+            }
+        }
+        if (item._props.Chambers) {
+            for (let s = 0; s < item._props.Chambers.length; s++) {
+                const slot = item._props.Chambers[s];
+                slots.push({
+                    name: slot._name,
+                    item: false
+                });
+            }
+        }
+    }
+    getContainedSlots(built);
+    console.log(slots);
+    return slots;
+};
+
 // <3 to Moritz
 // https://github.com/RatScanner/RatStash/blob/master/RatStash/CacheHashIndexParser.cs
 const getStringHash = (str) => {
@@ -46,6 +105,10 @@ const ToInt32 = (x) => {
     } else {
         return uint32;
     }
+};
+
+const getHashSum = (item) => {
+    //let num = 391 + 
 };
 
 const getItemHash = (itemId) => {
@@ -76,30 +139,28 @@ const getContainerHash = (hash, item) => {
         }
     }
     if (!preset) throw new Error(`Default preset not found for ${item._id}`);
-    let cartridges = [];
-    let magazine = false;
-    for (let i = 0; i < preset._items.length; i++) {
-        const part = preset._items[i];
-        if (part.slotId) {
-            if (part.slotId == 'cartridges') {
-                cartridges.push(part);
-            } else if (part.slotId == 'mod_magazine') {
-                magazine = part;
-            } else {
-                hash ^= getStringHash(part.slotId);
-                hash ^= getSingleItemHash(part._tpl);
+    //console.log(item._name);
+    //console.log(buildPreset(preset));
+    slots = buildPreset(preset);
+    for (let i = 0; i < slots.length; i++) {
+        slot = slots[i];
+        hash ^= getStringHash(slot.name);
+        let cartridges = false;
+        if (slot.name == 'cartridges') {
+            continue;
+        } else if (slot.name == 'mod_magazine' && slot.item) {
+            if (i+1 < slots.length && slots[i+1].name == 'cartridges') {
+                cartridges = slots[i+1].item;
             }
         }
-    }
-    if (magazine) {
-        magazine.cartridges = cartridges;
-        hash ^= getStringHash(magazine.slotId);
-        hash ^= getSingleItemHash(magazine._tpl, magazine);
+        if (slot.item) {
+            hash ^= getSingleItemHash(slot.item, cartridges);
+        }
     }
     return hash;
 }
 
-const getSingleItemHash = (itemId, magazineInfo) => {
+const getSingleItemHash = (itemId, cartridges) => {
     let hash = 0;
     if (!itemId) return hash;
     hash ^= getStringHash(itemId);
@@ -115,19 +176,10 @@ const getSingleItemHash = (itemId, magazineInfo) => {
     } else if (magazineTypes.includes(item._parent)) {
         // magazine
         //hash ^= getStringHash('cartridges');
-        if (!magazineInfo) {
+        if (!cartridges) {
             hash ^= 24 << 2;
         } else {
-            let cartridgeCount = 0;
-            for (let i = 0; i < magazineInfo.cartridges.length; i++) {
-                const cart = magazineInfo.cartridges[i];
-                if (cart.upd && cart.upd.StackObjectsCount) {
-                    cartridgeCount += cart.upd.StackObjectsCount;
-                } else {
-                    cartridgeCount++;
-                }
-            }
-            hash ^= 23 + getMaxVisibleAmmo(itemId, cartridgeCount) << 2;
+            hash ^= 23 + getMaxVisibleAmmo(itemId, cartridges.count) << 2;
         }
     } 
 

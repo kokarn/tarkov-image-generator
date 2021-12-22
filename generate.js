@@ -285,44 +285,6 @@ const getIcon = async (filename, item, options) => {
     return true;
 }
 
-const testItems = {
-    'ak-12 mag': {
-  	    id: '5bed61680db834001d2c45ab',
-        hash: 129279493,
-        type: 'mag'
-    },
-    'sr1mp mag': {
-  	    id: '59f99a7d86f7745b134aa97b',
-        hash: -1157986124,
-        type: 'mag'
-    },
-    'stanag': {
-        id: '55d4887d4bdc2d962f8b4570',
-        hash: -304995614,
-        type: 'mag'
-    },
-    'gpnvg': {
-        id: '5c0558060db834001b735271',
-        hash: 1444116773,
-        type: 'nvg'
-    },
-    'as val': {
-        id: '57c44b372459772d2b39b8ce',
-        hash: 658560108,
-        type: 'weapon'
-    },
-    'makarov': {
-        id: '5448bd6b4bdc2dfc2f8b4569',
-        hash: 2111427698,
-        type: 'weapon'
-    },
-    'aks74u': {
-        id: '57dc2fa62459775949412633',
-        hash: 592229284,
-        type: 'weapon'
-    }
-};
-
 const cacheListeners = [];
 const refreshCache = () => {
     iconData = JSON.parse(fs.readFileSync(iconCacheFolder+'index.json', 'utf8'));
@@ -347,7 +309,15 @@ const cacheChanged = (timeout) => {
     });
 };
 
-const initialize = async () => {
+const initialize = async (options) => {
+    defaultOptions = {
+        haltOnHash: false
+    };
+    if (!options) options = defaultOptions;
+    options = {
+        ...defaultOptions,
+        ...options
+    }
     ready = false;
     try {
         bsgData = JSON.parse(fs.readFileSync('./items.json', 'utf8'));
@@ -445,16 +415,16 @@ const initialize = async () => {
 
             try {
                 const hash = hashCalc.getItemHash(itemData.id);
-                /*if (itemData.id == '55d4887d4bdc2d962f8b4570') {
-                    console.log(hash);
-                    process.exit();
-                }*/
                 itemData.hash = hash;
                 itemsByHash[hash.toString()] = itemData;
             } catch (error) {
                 console.log(`Error hashing ${itemData.id}: ${error}`);
             }
             itemsById[itemData.id] = itemData;
+            if (itemData.id == options.haltOnHash) {
+                console.log(itemData.hash);
+                process.exit();
+            }
         });
     } catch (error) {
         return Promise.reject(error);
@@ -463,7 +433,13 @@ const initialize = async () => {
 };
 
 const generate = async (options, forceImageIndex) => {
-    const defaultOptions = {targetItemId: false, forceImageIndex: false, generateOnlyMissing: false, shutdown: false};
+    const defaultOptions = {
+        targetItemId: false, 
+        forceImageIndex: false, 
+        generateOnlyMissing: false, 
+        cacheUpdateTimeout: false,
+        upload: true
+    };
     if (!options) options = defaultOptions;
     if (typeof options === 'string') {
         options = {
@@ -512,18 +488,29 @@ const generate = async (options, forceImageIndex) => {
     }
 
     if (options.targetItemId) {
-        if (!itemsById[options.targetItemId]) return Promise.reject(new Error(`Item ${options.targetItemId} is unknown`));
-        let fileName = false;
+        const item = itemsById[options.targetItemId];
+        if (!item) return Promise.reject(new Error(`Item ${options.targetItemId} is unknown`));
+        let fileName = `${options.forceImageIndex}.png`;
         if (!options.forceImageIndex) {
-            if (!itemsById[options.targetItemId].hash) return Promise.reject(new Error(`Item ${options.targetItemId} has no hash`));
-            const hash = itemsById[options.targetItemId].hash;
-            if (!iconData[hash]) return Promise.reject(new Error(`Item ${options.targetItemId} hash ${hash} not found in cache`));
+            const hash = item.hash;
+            if (!hash) return Promise.reject(new Error(`Item ${options.targetItemId} has no hash`));
+            if (!iconData[hash]) {
+                try {
+                    if (options.cacheUpdateTimeout === false || item.types.includes('weapon')) {
+                        throw new Error('not found');
+                    }
+                    await cacheChanged(options.cacheUpdateTimeout);
+                    if (!iconData[hash]) {
+                        throw new Error('not found');
+                    }
+                } catch (error) {
+                    return Promise.reject(new Error(`Item ${options.targetItemId} hash ${hash} not found in cache`));
+                }
+            }
             fileName = `${iconData[hash]}.png`;
-        } else {
-            fileName = `${options.forceImageIndex}.png`;
-        }
+        } 
         try {
-            await getIcon(fileName, itemsById[options.targetItemId], options);
+            await getIcon(fileName, item, options);
         } catch (error) {
             console.log(error);
             return Promise.reject(error);
@@ -544,29 +531,65 @@ const generate = async (options, forceImageIndex) => {
         }
     }
 
-    const uploadCount = await uploadImages();
+
+    let uploadCount = 0;
+    if (options.upload) {
+        uploadCount = await uploadImages();
+    }
     return uploadCount;
+};
+
+let watcher = false;
+const watchIconCacheFolder = () => {
+    if (watcher) watcher.close();
+    watcher = fs.watch(iconCacheFolder, (eventType, filename) => {
+        if (filename === 'index.json') {
+            try {
+                refreshCache();
+            } catch (error) {
+                console.log('Icon cache is missing');
+            }
+        }
+    });
+    watcher.on('error', () => {
+        watcher.close();
+        watcher = false;
+        watchIconCacheFolderReady();
+    });
+};
+
+let readyWatcher = false;
+const watchIconCacheFolderReady = () => {
+    if (readyWatcher) readyWatcher.close();
+    const bsgTemp = process.env.LOCALAPPDATA+'\\Temp\\Battlestate Games';
+    readyWatcher = fs.watch(bsgTemp, {recursive: true}, (eventType, filename) => {
+        console.log(`${eventType} ${filename}`);
+        if (filename === 'EscapeFromTarkov\\Icon Cache\\live\\index.json') {
+            watchIconCacheFolder();
+            readyWatcher.close();
+            readyWatcher = false;
+        }
+    });
 };
 
 (async () => {
     try {
         refreshCache();
     } catch (error) {
-        console.log('Icon cache is missing; call refreshCache() before generating icons');
+        console.log('Icon cache is missing');
     }
-    fs.watch(iconCacheFolder, (eventType, filename) => {
-        if (filename === 'index.json') {
-            try {
-                refreshCache();
-            } catch (error) {
-                console.log('Icon cache is missing; call refreshCache() before generating icons');
-            }
-        }
-    });
+    try {
+        watchIconCacheFolder();
+    } catch (error) {
+        watchIconCacheFolderReady();
+    }
 })();
 
 module.exports = {
     initializeImageGenerator: initialize,
     generateImages: generate,
-    cacheChanged: cacheChanged
+    shutdown: () => {
+        if (watcher) watcher.close();
+        if (readyWatcher) readyWatcher.close();
+    }
 };
