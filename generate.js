@@ -323,8 +323,28 @@ const testItems = {
     }
 };
 
+const cacheListeners = [];
 const refreshCache = () => {
     iconData = JSON.parse(fs.readFileSync(iconCacheFolder+'index.json', 'utf8'));
+    for (let i = 0; i < cacheListeners.length; i++) {
+        cacheListeners[i]();
+    }
+    cacheListeners.length = 0;
+};
+
+const cacheChanged = (timeout) => {
+    return new Promise((resolve, reject) => {
+        let to = false;
+        if (timeout) {
+            to = setTimeout(() => {
+                reject(new Error(`Cache did not update in ${timeout}ms`));
+            }, timeout);
+        }
+        cacheListeners.push(() => {
+            clearTimeout(to);
+            resolve(new Date());
+        });
+    });
 };
 
 const initialize = async () => {
@@ -548,5 +568,5 @@ const generate = async (options, forceImageIndex) => {
 module.exports = {
     initializeImageGenerator: initialize,
     generateImages: generate,
-    refreshCache: refreshCache
+    cacheChanged: cacheChanged
 };
