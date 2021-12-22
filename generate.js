@@ -64,84 +64,38 @@ const colors = {
     ],
 };
 
-const getItemId = (itemIndex, options) => {
-    if (options.forceImageIndex && options.forceImageIndex == itemIndex) {
-        options.shutdown = true;
-        const itemId = options.targetItemId;
-        let colorId = options.targetItemId;
-        if (presets[itemId]) {
-            colorId = presets[itemId].baseId;
-        }
-        return {color: colorId, filename: itemId};
-    } 
-    for(const key in iconData){
-        if(iconData[key] != itemIndex){
-            continue;
-        }
-        if (itemsByHash[key]) {
-            const item = itemsByHash[key];
-            return {color: item.id, filename: item.id};
-        }
-        return false;
+const getIcon = async (filename, item, options) => {
+    if (!item) {
+        console.log(`No item provided for ${filename}`);
+        return Promise.reject(new Error(`No item provided for ${filename}`));
     }
-
-    //console.log(`Found no itemId for ${itemIndex}`);
-
-    return false;
-};
-
-const getItemColors = (itemId) => {
-    if(!bsgData[itemId]){
-        console.log(`${itemId} not found in bsgData`)
-        return false;
-    }
-
-    if (!bsgData[itemId]._props) {
-        console.log(`${itemId} has no _props`);
-    }
-
-    if (!colors[bsgData[itemId]._props.BackgroundColor]) {
-        return false;
-    }
-    return colors[bsgData[itemId]._props.BackgroundColor];
-};
-
-const getIcon = async (filename, options) => {
-    const itemId = getItemId(path.basename(filename, '.png'), options);
-    if (!itemId) {
-        console.log(`No itemId found for ${filename}`);
-        return Promise.reject(new Error('No itemId found'));
-    }
-    if (options.targetItemId && options.targetItemId != itemId.filename) {
-        return Promise.reject(new Error(`itemId (${itemId.filename}) does not match ${options.targetItemId}`));
-    }
-    const itemColors = getItemColors(itemId.color);
+    const itemColors = colors[item.backgroundColor];
 
     if(!itemColors){
-        console.log(`No colors found for ${itemId.color} (${filename})`);
-        return Promise.reject(new Error(`No colors found for ${itemId.color}`));
+        console.log(`No colors found for ${item.id} (${filename})`);
+        return Promise.reject(new Error(`No colors found for ${item.id}`));
     }
 
     let shortName = false;
-    if (presets[itemId.filename]) {
-        shortName = presets[itemId.filename].name+'';
-    } else if (shortNames[itemId.filename]) {
-        shortName = shortNames[itemId.filename]+'';
+    if (presets[item.id]) {
+        shortName = presets[item.id].name+'';
+    } else if (shortNames[item.id]) {
+        shortName = shortNames[item.id]+'';
     }
 
     const sourceImage = await Jimp.read(path.join(iconCacheFolder, filename));
 
     const baseImagePromise = new Promise(resolve => {
-        if(missingBaseImage.includes(itemId.filename)){
-            console.log(`${itemId.filename} should be uploaded for base-image`);
-            fs.copyFileSync(path.join(iconCacheFolder, filename), path.join('./', 'generated-images-missing', `${itemId.filename}-base-image.png`));
+        if(missingBaseImage.includes(item.id)){
+            console.log(`${item.id} should be uploaded for base-image`);
+            fs.copyFileSync(path.join(iconCacheFolder, filename), path.join('./', 'generated-images-missing', `${item.id}-base-image.png`));
         }
         resolve(true);
     });
 
     // create icon
     const iconPromise = new Promise(async resolve => {
-        if (options.generateOnlyMissing && !missingIconLink.includes(itemId.filename)) {
+        if (options.generateOnlyMissing && !missingIconLink.includes(item.id)) {
             resolve(true);
             return;
         }
@@ -160,11 +114,11 @@ const getIcon = async (filename, options) => {
                 mode: Jimp.BLEND_DESTINATION_OVER,
             });
 
-        promises.push(image.writeAsync(path.join('./', 'generated-images', `${itemId.filename}-icon.jpg`)));
+        promises.push(image.writeAsync(path.join('./', 'generated-images', `${item.id}-icon.jpg`)));
 
-        if(missingIconLink.includes(itemId.filename)){
-            console.log(`${itemId.filename} should be uploaded for icon`);
-            promises.push(image.writeAsync(path.join('./', 'generated-images-missing', `${itemId.filename}-icon.jpg`)));
+        if(missingIconLink.includes(item.id)){
+            console.log(`${item.id} should be uploaded for icon`);
+            promises.push(image.writeAsync(path.join('./', 'generated-images-missing', `${item.id}-icon.jpg`)));
         }
         await Promise.all(promises);
         resolve(true);
@@ -172,7 +126,7 @@ const getIcon = async (filename, options) => {
 
     // create grid image
     const gridImagePromise = new Promise(async resolve => {
-        if (options.generateOnlyMissing && !missingGridImage.includes(itemId.filename)) {
+        if (options.generateOnlyMissing && !missingGridImage.includes(item.id)) {
             resolve(true);
             return;
         }
@@ -192,11 +146,11 @@ const getIcon = async (filename, options) => {
             try {
                 shortName = shortName.trim().replace(/\r/g, '').replace(/\n/g, '');
             } catch (error) {
-                console.log(`Error trimming shortName ${shortName} for ${JSON.stringify(itemId)}`);
+                console.log(`Error trimming shortName ${shortName} for ${JSON.stringify(item.id)}`);
                 shortName = false;
             }
         } else {
-            console.log(`No shortName for ${JSON.stringify(itemId)}`);
+            console.log(`No shortName for ${JSON.stringify(item.id)}`);
         }
         if (shortName) {
             let namePrinted = false;
@@ -215,7 +169,7 @@ const getIcon = async (filename, options) => {
                             namePrinted = true;
                         }
                     } catch (error) {
-                        console.log(`Error adding text to ${shortName} ${itemId.filename}`);
+                        console.log(`Error adding text to ${shortName} ${item.id}`);
                         console.log(error);
                     }
                 });
@@ -242,7 +196,7 @@ const getIcon = async (filename, options) => {
                                 namePrinted = true;
                             }
                         } catch (error) {
-                            console.log(`Error adding text to ${shortName} ${itemId.filename}`);
+                            console.log(`Error adding text to ${shortName} ${item.id}`);
                             console.log(error);
                         }
                     });
@@ -259,7 +213,7 @@ const getIcon = async (filename, options) => {
                                 namePrinted = true;
                             }
                         } catch (error) {
-                            console.log(`Error adding text to ${shortName} ${itemId.filename}`);
+                            console.log(`Error adding text to ${shortName} ${item.id}`);
                             console.log(error);
                         }
                     });
@@ -286,7 +240,7 @@ const getIcon = async (filename, options) => {
                                 namePrinted = true;
                             }
                         } catch (error) {
-                            console.log(`Error adding text to ${shortName} ${itemId.filename}`);
+                            console.log(`Error adding text to ${shortName} ${item.id}`);
                             console.log(error);
                         }
                     });
@@ -303,14 +257,14 @@ const getIcon = async (filename, options) => {
                                 namePrinted = true;
                             }
                         } catch (error) {
-                            console.log(`Error adding text to ${shortName} ${itemId.filename}`);
+                            console.log(`Error adding text to ${shortName} ${item.id}`);
                             console.log(error);
                         }
                     });
                 }
             }
             if (!namePrinted) {
-                fs.writeFile(path.join('./', 'logging', `${shortName.replace(/[^a-zA-Z0-9]/g, '')}-${itemId.filename}-not-printed.json`), JSON.stringify({shortName: shortName, id: itemId.filename}, null, 4), 'utf8', (err) => {
+                fs.writeFile(path.join('./', 'logging', `${shortName.replace(/[^a-zA-Z0-9]/g, '')}-${item.id}-not-printed.json`), JSON.stringify({shortName: shortName, id: item.id}, null, 4), 'utf8', (err) => {
                     if (err) {
                         console.log(`Error writing no prices found file: ${err}`);
                     }
@@ -318,18 +272,15 @@ const getIcon = async (filename, options) => {
             }
         }
 
-        promises.push(image.writeAsync(path.join('./', 'generated-images', `${itemId.filename}-grid-image.jpg`)));
+        promises.push(image.writeAsync(path.join('./', 'generated-images', `${item.id}-grid-image.jpg`)));
 
-        if(missingGridImage.includes(itemId.filename)){
-            console.log(`${itemId.filename} should be uploaded for grid-image`);
-            promises.push(image.writeAsync(path.join('./', 'generated-images-missing', `${itemId.filename}-grid-image.jpg`)));
+        if(missingGridImage.includes(item.id)){
+            console.log(`${item.id} should be uploaded for grid-image`);
+            promises.push(image.writeAsync(path.join('./', 'generated-images-missing', `${item.id}-grid-image.jpg`)));
         }
         await Promise.all(promises);
         resolve(true);
     });
-    if (options.targetItemId == itemId.filename) {
-        options.shutdown = true;
-    }
     await Promise.all([baseImagePromise, iconPromise, gridImagePromise]);
     return true;
 }
@@ -373,7 +324,7 @@ const testItems = {
 };
 
 const refreshCache = () => {
-    iconData = require(iconCacheFolder+'index.json');
+    iconData = JSON.parse(fs.readFileSync(iconCacheFolder+'index.json', 'utf8'));
 };
 
 const initialize = async () => {
@@ -488,11 +439,6 @@ const initialize = async () => {
     } catch (error) {
         return Promise.reject(error);
     }
-    try {
-        refreshCache();
-    } catch (error) {
-        console.log('Icon cache is missing; call refreshCache() before generating icons');
-    }
     ready = true;
 };
 
@@ -545,51 +491,59 @@ const generate = async (options, forceImageIndex) => {
         return Promise.reject(mkdirError);
     }
 
-    let successCount = 0;
-    let shutdownError = false;
     if (options.targetItemId) {
         if (!itemsById[options.targetItemId]) return Promise.reject(new Error(`Item ${options.targetItemId} is unknown`));
-        if (!itemsById[options.targetItemId].hash) return Promise.reject(new Error(`Item ${options.targetItemId} has no hash`));
-        const hash = itemsById[options.targetItemId].hash;
-        if (!iconData[hash]) return Promise.reject(new Error(`Item ${options.targetItemId} hash ${hash} not found in cache`));
-        const fileName = `${iconData[hash]}.png`;
+        let fileName = false;
+        if (!options.forceImageIndex) {
+            if (!itemsById[options.targetItemId].hash) return Promise.reject(new Error(`Item ${options.targetItemId} has no hash`));
+            const hash = itemsById[options.targetItemId].hash;
+            if (!iconData[hash]) return Promise.reject(new Error(`Item ${options.targetItemId} hash ${hash} not found in cache`));
+            fileName = `${iconData[hash]}.png`;
+        } else {
+            fileName = `${options.forceImageIndex}.png`;
+        }
         try {
-            await getIcon(fileName, options);
-            successCount++;
+            await getIcon(fileName, itemsById[options.targetItemId], options);
         } catch (error) {
             console.log(error);
-            shutdownError = error;
+            return Promise.reject(error);
         }
-        options.shutdown = true;
     } else {
-        const files = fs.readdirSync(iconCacheFolder);
-
-        if (files.length == 0) {
-            return Promise.reject(`No files found in ${iconCacheFolder}`);
-        }
-        for(let i = 0; i < files.length && !options.shutdown; i = i + 1){
+        const hashes = Object.keys(iconData);
+        for (let i = 0; i < hashes.length; i++) {
+            const hash = hashes[i];
             try {
-                console.log(`Processing ${i + 1}/${files.length}`);
-                await getIcon(files[i], options);
-                successCount++;
-                shutdownError = false;
-            } catch (error) {
-                if (options.shutdown) {
-                    shutdownError = error;
+                console.log(`Processing ${i + 1}/${hashes.length}`);
+                if (!itemsByHash[hash]) {
+                    continue;
                 }
+                await getIcon(`${iconData[hash]}.png`, itemsByHash[hash], options);
+            } catch (error) {
+                console.log(error);
             }
         }
     }
-    if (successCount == 0 && options.targetItemId) {
-        return Promise.reject(new Error(`Found no matching icons for ${options.targetItemId}`));
-    }
 
     const uploadCount = await uploadImages();
-    if (shutdownError) {
-        return Promise.reject(shutdownError);
-    }
     return uploadCount;
 };
+
+(async () => {
+    try {
+        refreshCache();
+    } catch (error) {
+        console.log('Icon cache is missing; call refreshCache() before generating icons');
+    }
+    fs.watch(iconCacheFolder, (eventType, filename) => {
+        if (filename === 'index.json') {
+            try {
+                refreshCache();
+            } catch (error) {
+                console.log('Icon cache is missing; call refreshCache() before generating icons');
+            }
+        }
+    });
+})();
 
 module.exports = {
     initializeImageGenerator: initialize,

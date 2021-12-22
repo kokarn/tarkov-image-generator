@@ -29,4 +29,5 @@ const { initializeImageGenerator, generateImages } = require('./generate');
     } catch (error) {
         console.log(error);
     }
+    process.exit();
 })();

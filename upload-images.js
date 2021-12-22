@@ -11,6 +11,7 @@ module.exports = async () => {
 
     let uploadCount = 0;
     let currentUploads = [];
+    if (uploadFiles.length == 0) return 0;
     for(const filename of uploadFiles){
         const form = new FormData();
         const matches = filename.match(/(?<id>.{24})-(?<type>.+?)\.(?:jpg|png)/);
