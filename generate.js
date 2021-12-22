@@ -548,10 +548,10 @@ const generate = async (options, forceImageIndex) => {
     let successCount = 0;
     let shutdownError = false;
     if (options.targetItemId) {
-        if (!itemsById[options.targetItemId]) return Promise.reject(`Item ${options.targetItemId} is unknown`);
-        if (!itemsById[options.targetItemId].hash) return Promise.reject(`Item ${options.targetItemId} has no hash`);
+        if (!itemsById[options.targetItemId]) return Promise.reject(new Error(`Item ${options.targetItemId} is unknown`));
+        if (!itemsById[options.targetItemId].hash) return Promise.reject(new Error(`Item ${options.targetItemId} has no hash`));
         const hash = itemsById[options.targetItemId].hash;
-        if (!iconData[hash]) return Promise.reject(`Item ${options.targetItemId} hash ${hash} not found in cache`);
+        if (!iconData[hash]) return Promise.reject(new Error(`Item ${options.targetItemId} hash ${hash} not found in cache`));
         const fileName = `${iconData[hash]}.png`;
         try {
             await getIcon(fileName, options);
