@@ -172,7 +172,14 @@ const getSingleItemHash = (itemId, cartridges) => {
         hash ^= 23;
     } else if (item._parent == '57bef4c42459772e8d35a53b') {
         // ArmoredEquipment
-        hash ^= 23;
+        if (item._props && item._props.HasHinge) {
+            hash ^= 23;
+        }
+    } else if (item._parent == '55818a594bdc2db9688b456a') {
+        // stock
+        if (item._props && item._props.Foldable) {
+            hash ^= 23 << 1;
+        }
     } else if (magazineTypes.includes(item._parent)) {
         // magazine
         //hash ^= getStringHash('cartridges');

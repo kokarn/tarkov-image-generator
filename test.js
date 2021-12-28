@@ -37,6 +37,26 @@ const testItems = {
         id: '57dc2fa62459775949412633',
         hash: 592229284,
         type: 'weapon'
+    },
+    'mandible': {
+        id: '5a16ba61fcdbcb098008728a',
+        hash: -1874291613,
+        type: 'ArmoredEquipment'
+    },
+    'fast_visor': {
+        id: '5a16b672fcdbcb001912fa83',
+        hash: -692958207,
+        type: 'ArmoredEquipment'
+    },
+    'firefighter_visor_down': {
+        id: '5c08f87c0db8340019124324',
+        hash: -235525326,
+        type: 'helmet'
+    },
+    'dvl_stock': {
+        id: '58889d0c2459775bc215d981',
+        hash: 335400172,
+        type: 'mod'
     }
 };
 
@@ -62,8 +82,9 @@ const testItems = {
         forceImage = process.argv[3];
     }
     try {
-        console.log(testItems.makarov.hash);
-        const hash = await initializeImageGenerator({haltOnHash: '5448bd6b4bdc2dfc2f8b4569'});
+        const testItem = testItems.dvl_stock;
+        console.log(testItem.hash);
+        const hash = await initializeImageGenerator({haltOnHash: testItem.id});
         //await generateImages({targetItemId: targetItemId, forceImageIndex: forceImage});
     } catch (error) {
         console.log(error);
