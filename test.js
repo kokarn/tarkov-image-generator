@@ -48,6 +48,11 @@ const testItems = {
         hash: -692958207,
         type: 'ArmoredEquipment'
     },
+    'trooper_mask': {
+        id: '5ea058e01dbce517f324b3e2',
+        hash: 1311197229,
+        type: 'ArmoredEquipment'
+    },
     'firefighter_visor_down': {
         id: '5c08f87c0db8340019124324',
         hash: -235525326,
@@ -57,6 +62,16 @@ const testItems = {
         id: '58889d0c2459775bc215d981',
         hash: 335400172,
         type: 'mod'
+    },
+    'djeta_visor_up': {
+        id: '5c0d2727d174af02a012cf58',
+        hash: 385484745,
+        type: 'helmet'
+    },
+    'djeta_visor_down': {
+        id: '5c0d2727d174af02a012cf58',
+        hash: 385484742,
+        type: 'helmet'
     }
 };
 
@@ -82,7 +97,7 @@ const testItems = {
         forceImage = process.argv[3];
     }
     try {
-        const testItem = testItems.dvl_stock;
+        const testItem = testItems.djeta_visor_up;
         console.log(testItem.hash);
         const hash = await initializeImageGenerator({haltOnHash: testItem.id});
         //await generateImages({targetItemId: targetItemId, forceImageIndex: forceImage});
