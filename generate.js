@@ -90,6 +90,7 @@ const getIcon = async (filename, item, options) => {
             console.log(`${item.id} should be uploaded for base-image`);
             fs.copyFileSync(path.join(iconCacheFolder, filename), path.join('./', 'generated-images-missing', `${item.id}-base-image.png`));
         }
+        options.response.generated.push('base');
         resolve(true);
     });
 
@@ -121,6 +122,7 @@ const getIcon = async (filename, item, options) => {
             promises.push(image.writeAsync(path.join('./', 'generated-images-missing', `${item.id}-icon.jpg`)));
         }
         await Promise.all(promises);
+        options.response.generated.push('icon');
         resolve(true);
     });
 
@@ -279,6 +281,7 @@ const getIcon = async (filename, item, options) => {
             promises.push(image.writeAsync(path.join('./', 'generated-images-missing', `${item.id}-grid-image.jpg`)));
         }
         await Promise.all(promises);
+        options.response.generated.push('grid image');
         resolve(true);
     });
     await Promise.all([baseImagePromise, iconPromise, gridImagePromise]);
@@ -456,6 +459,11 @@ const generate = async (options, forceImageIndex) => {
         ...defaultOptions,
         ...options
     };
+    options.response = {
+        generated: [],
+        uploaded: [],
+        uploadErrors: []
+    }
     if (!ready) {
         return Promise.reject(new Error('Must call initializeImageGenerator before generating images'));
     }
@@ -531,12 +539,10 @@ const generate = async (options, forceImageIndex) => {
         }
     }
 
-
-    let uploadCount = 0;
     if (options.upload) {
-        uploadCount = await uploadImages();
+        await uploadImages(options);
     }
-    return uploadCount;
+    return options.response;
 };
 
 let watcher = false;

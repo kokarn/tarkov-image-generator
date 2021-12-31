@@ -72,6 +72,11 @@ const testItems = {
         id: '5c0d2727d174af02a012cf58',
         hash: 385484742,
         type: 'helmet'
+    },
+    'killa_faceshield': {
+        id: '5c0e842486f77443a74d2976',
+        hash: 385484742,
+        type: 'ArmoredEquipment'
     }
 };
 
@@ -97,7 +102,7 @@ const testItems = {
         forceImage = process.argv[3];
     }
     try {
-        const testItem = testItems.djeta_visor_up;
+        const testItem = testItems.killa_faceshield;
         console.log(testItem.hash);
         const hash = await initializeImageGenerator({haltOnHash: testItem.id});
         //await generateImages({targetItemId: targetItemId, forceImageIndex: forceImage});
