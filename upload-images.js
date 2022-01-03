@@ -22,12 +22,8 @@ module.exports = async (options) => {
 
             continue;
         }
-        if (options && options.response.uploaded) {
-            if (!options.response.uploaded[matches.groups.id]) options.response.uploaded[matches.groups.id] = [];
-        }
-        if (options && options.response.uploadErrors) {
-            if (!options.response.uploadErrors[matches.groups.id]) options.response.uploadErrors[matches.groups.id] = [];
-        }
+        if (!options.response.uploaded[matches.groups.id]) options.response.uploaded[matches.groups.id] = [];
+        if (!options.response.uploadErrors[matches.groups.id]) options.response.uploadErrors[matches.groups.id] = [];
 
         form.append('id', matches.groups.id);
         form.append('type', matches.groups.type);
@@ -38,13 +34,9 @@ module.exports = async (options) => {
         const upload = got.post(ENDPOINT, {
             body: form,
         }).then(() => {
-            if (options && options.response.uploaded) {
-                options.response.uploaded[matches.groups.id].push(matches.groups.type.replace('-', ' '));
-            }
+            options.response.uploaded[matches.groups.id].push(matches.groups.type.replace('-', ' '));
         }).catch(error => {
-            if (options && options.response.uploadErrors) {
-                options.response.uploadErrors[matches.groups.id].push(error);
-            }
+            options.response.uploadErrors[matches.groups.id].push(error);
             if(!error.response){
                 console.log(error);
             } else {
