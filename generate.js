@@ -82,6 +82,7 @@ const getIcon = async (filename, item, options) => {
     } else if (shortNames[item.id]) {
         shortName = shortNames[item.id]+'';
     }
+    if (!options.response.generated[item.id]) options.response.generated[item.id] = [];
 
     const sourceImage = await Jimp.read(path.join(iconCacheFolder, filename));
 
@@ -90,7 +91,7 @@ const getIcon = async (filename, item, options) => {
             console.log(`${item.id} should be uploaded for base-image`);
             fs.copyFileSync(path.join(iconCacheFolder, filename), path.join('./', 'generated-images-missing', `${item.id}-base-image.png`));
         }
-        options.response.generated.push('base');
+        options.response.generated[item.id].push('base');
         resolve(true);
     });
 
@@ -122,7 +123,7 @@ const getIcon = async (filename, item, options) => {
             promises.push(image.writeAsync(path.join('./', 'generated-images-missing', `${item.id}-icon.jpg`)));
         }
         await Promise.all(promises);
-        options.response.generated.push('icon');
+        options.response.generated[item.id].push('icon');
         resolve(true);
     });
 
@@ -281,7 +282,7 @@ const getIcon = async (filename, item, options) => {
             promises.push(image.writeAsync(path.join('./', 'generated-images-missing', `${item.id}-grid-image.jpg`)));
         }
         await Promise.all(promises);
-        options.response.generated.push('grid image');
+        options.response.generated[item.id].push('grid image');
         resolve(true);
     });
     await Promise.all([baseImagePromise, iconPromise, gridImagePromise]);
@@ -460,9 +461,9 @@ const generate = async (options, forceImageIndex) => {
         ...options
     };
     options.response = {
-        generated: [],
-        uploaded: [],
-        uploadErrors: []
+        generated: {},
+        uploaded: {},
+        uploadErrors: {}
     }
     if (!ready) {
         return Promise.reject(new Error('Must call initializeImageGenerator before generating images'));
