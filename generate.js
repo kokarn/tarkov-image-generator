@@ -83,6 +83,8 @@ const getIcon = async (filename, item, options) => {
         shortName = shortNames[item.id]+'';
     }
     if (!options.response.generated[item.id]) options.response.generated[item.id] = [];
+    if (!options.response.uploaded[item.id]) options.response.uploaded[item.id] = [];
+    if (!options.response.uploadErrors[item.id]) options.response.uploadErrors[item.id] = [];
 
     const sourceImage = await Jimp.read(path.join(iconCacheFolder, filename));
 
