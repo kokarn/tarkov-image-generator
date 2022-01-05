@@ -77,6 +77,11 @@ const testItems = {
         id: '5c0e842486f77443a74d2976',
         hash: 385484742,
         type: 'ArmoredEquipment'
+    },
+    't7': {
+        id: '5c110624d174af029e69734c',
+        hash: -1236854413,
+        type: 'ThermalVision'
     }
 };
 
@@ -102,7 +107,7 @@ const testItems = {
         forceImage = process.argv[3];
     }
     try {
-        const testItem = testItems.killa_faceshield;
+        const testItem = testItems.t7;
         console.log(testItem.hash);
         const hash = await initializeImageGenerator({haltOnHash: testItem.id});
         //await generateImages({targetItemId: targetItemId, forceImageIndex: forceImage});

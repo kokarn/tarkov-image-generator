@@ -167,8 +167,8 @@ const getSingleItemHash = (itemId, cartridges) => {
     const item = items[itemId];
     if (!item) return hash;
 
-    if (item._parent == '5a2c3a9486f774688b05e574') {
-        // hash for nvgs
+    if (item._parent == '5a2c3a9486f774688b05e574' || item._parent == '5d21f59b6dbe99052b54ef83') {
+        // hash for nvgs and thermal vision
         hash ^= 23;
     } else if (item._parent == '57bef4c42459772e8d35a53b' || item._parent == '5a341c4086f77401f2541505') {
         // ArmoredEquipment or Headwear
