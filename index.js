@@ -24,7 +24,7 @@ const { initializeImageGenerator, generateImages, shutdown } = require('./genera
         forceImage = process.argv[3];
     }
     try {
-        await initializeImageGenerator();
+        await initializeImageGenerator({hashOnly: targetItemId});
         await generateImages({targetItemId: targetItemId, forceImageIndex: forceImage});
     } catch (error) {
         console.log(error);

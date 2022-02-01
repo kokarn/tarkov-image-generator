@@ -317,7 +317,8 @@ const cacheChanged = (timeout) => {
 
 const initialize = async (options) => {
     defaultOptions = {
-        haltOnHash: false
+        haltOnHash: false,
+        hashOnly: false
     };
     if (!options) options = defaultOptions;
     options = {
@@ -380,9 +381,15 @@ const initialize = async (options) => {
         console.log(`Error downloading found base image list: ${error}`);
     }
     try {
+        let queryType = 'itemsByType';
+        let queryParams = 'type: any';
+        if (options.hashOnly) {
+            queryType = 'item';
+            queryParams = `id: "${options.hashOnly}"`;
+        }
         const response = await got.post('https://tarkov-tools.com/graphql', {
             body: JSON.stringify({query: `{
-                itemsByType(type: any){
+                ${queryType}(${queryParams}){
                   id
                   shortName
                   iconLink
@@ -397,7 +404,7 @@ const initialize = async (options) => {
         missingGridImage = [];
         missingIconLink = [];
         missingBaseImage = [];
-        response.body.data.itemsByType.map((itemData) => {
+        response.body.data[queryType].map((itemData) => {
             if (itemData.types.includes('disabled')) return;
             if(!itemData.gridImageLink){
                 missingGridImage.push(itemData.id);

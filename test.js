@@ -107,7 +107,9 @@ const testItems = {
         forceImage = process.argv[3];
     }
     try {
-        const testItem = testItems.t7;
+        const testItemKey = 't7';
+        const testItem = testItems[testItemKey];
+        console.log(`Expected and calculated hash for ${testItemKey}:`)
         console.log(testItem.hash);
         const hash = await initializeImageGenerator({haltOnHash: testItem.id});
         //await generateImages({targetItemId: targetItemId, forceImageIndex: forceImage});
