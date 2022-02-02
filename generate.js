@@ -320,10 +320,13 @@ const initialize = async (options) => {
         haltOnHash: false,
         hashOnly: false
     };
-    if (!options) options = defaultOptions;
+    if (!options) options = {};
     options = {
         ...defaultOptions,
         ...options
+    }
+    if (options.haltOnHash) {
+        options.hashOnly = options.haltOnHash;
     }
     ready = false;
     try {
@@ -381,15 +384,15 @@ const initialize = async (options) => {
         console.log(`Error downloading found base image list: ${error}`);
     }
     try {
-        let queryType = 'itemsByType';
-        let queryParams = 'type: any';
+        let queryType = `itemsByType(type: any)`;
+        //let queryParams = 'type: any';
         if (options.hashOnly) {
-            queryType = 'item';
-            queryParams = `id: "${options.hashOnly}"`;
+            queryType = `item( id: "${options.hashOnly}")`;
+            //queryParams = `id: "${options.hashOnly}"`;
         }
         const response = await got.post('https://tarkov-tools.com/graphql', {
             body: JSON.stringify({query: `{
-                ${queryType}(${queryParams}){
+                ${queryType}{
                   id
                   shortName
                   iconLink
@@ -400,11 +403,14 @@ const initialize = async (options) => {
             }),
             responseType: 'json',
         });
+        if (options.hashOnly) {
+            response.body.data.itemsByType = [response.body.data.item];
+        }
         hashCalc.init(bsgData, sptPresets, presets);
         missingGridImage = [];
         missingIconLink = [];
         missingBaseImage = [];
-        response.body.data[queryType].map((itemData) => {
+        response.body.data.itemsByType.map((itemData) => {
             if (itemData.types.includes('disabled')) return;
             if(!itemData.gridImageLink){
                 missingGridImage.push(itemData.id);
