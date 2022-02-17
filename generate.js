@@ -611,7 +611,13 @@ module.exports = {
     initializeImageGenerator: initialize,
     generateImages: generate,
     shutdown: () => {
-        if (watcher) watcher.close();
-        if (readyWatcher) readyWatcher.close();
+        if (watcher) {
+            watcher.close();
+            watcher = false;
+        }
+        if (readyWatcher) {
+            readyWatcher.close();
+            readyWatcher = false;
+        }
     }
 };
