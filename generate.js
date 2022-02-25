@@ -86,8 +86,8 @@ const getIcon = async (filename, item, options) => {
         if(item.needs_base_image){
             console.log(`${item.id} should be uploaded for base-image`);
             fs.copyFileSync(path.join(iconCacheFolder, filename), path.join('./', 'generated-images-missing', `${item.id}-base-image.png`));
+            options.response.generated[item.id].push('base');
         }
-        options.response.generated[item.id].push('base');
         resolve(true);
     });
 
@@ -309,6 +309,15 @@ const cacheChanged = (timeout) => {
     });
 };
 
+const cacheIsLoaded = () => {
+    for (let key in iconData) {
+        if (iconData.hasOwnProperty(key)) {
+            return true;
+        }
+    }
+    return false;
+};
+
 const loadBsgData = async () => {
     try {
         bsgData = JSON.parse(fs.readFileSync('./items.json', 'utf8'));
@@ -516,7 +525,7 @@ const generate = async (options, forceImageIndex) => {
     if (!sptPresets) {
         await loadSptPresets();
     }
-    if (!iconData) {
+    if (!cacheIsLoaded()) {
         refreshCache();
     }
     try {
@@ -553,6 +562,7 @@ const generate = async (options, forceImageIndex) => {
             item = itemsById[options.targetItemId];
         } else {
             item = options.item;
+            options.targetItemId = item.id;
             setBackgroundColor(item);
             try {
                 hashCalc.init(bsgData, sptPresets, presets);

@@ -112,7 +112,25 @@ const testItems = {
         console.log(`Expected and calculated hash for ${testItemKey}:`)
         console.log(testItem.hash);
         await initializeImageGenerator({targetItemId: testItem.id});
-        //await generateImages({targetItemId: targetItemId, forceImageIndex: forceImage});
+        /*const item = {
+            id: '5b7c710788a4506dec015957',
+            name: 'Lucky Scav Junk box',
+            shortName: 'Junk',
+            match_index: 0,
+            needs_image: 0,
+            needs_grid_image: 0,
+            needs_icon_image: 0
+        }
+        results = await generateImages({
+            item: {
+                ...item,
+                needs_base_image: false,
+                types: ['barter', 'container']
+            },
+            generateOnlyMissing: true,
+            cacheUpdateTimeout: 5000
+        });
+        console.log(results);*/
     } catch (error) {
         console.log(error);
     }
