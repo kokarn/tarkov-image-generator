@@ -581,7 +581,7 @@ const generate = async (options, forceImageIndex) => {
             if (!hash) return Promise.reject(new Error(`Item ${options.targetItemId} has no hash`));
             if (!iconData[hash]) {
                 try {
-                    if (options.cacheUpdateTimeout === false || item.types.includes('gun')) {
+                    if (options.cacheUpdateTimeout === false || (Array.isArray(item.types) && item.types.includes('gun'))) {
                         throw new Error('not found');
                     }
                     await cacheChanged(options.cacheUpdateTimeout);
