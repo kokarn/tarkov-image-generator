@@ -555,12 +555,12 @@ const generate = async (options, forceImageIndex) => {
             item = options.item;
             setBackgroundColor(item);
             try {
-                item.hash = hashCalc.getItemHash(itemData.id);
+                item.hash = hashCalc.getItemHash(item.id);
                 if (!itemsByHash[item.hash.toString()]) {
                     itemsByHash[item.hash.toString()] = item;
                 }
             } catch (error) {
-                console.log(`Error hashing ${itemData.id}: ${error}`);
+                console.log(`Error hashing ${item.id}: ${error}`);
             }
         }
         if (!item) return Promise.reject(new Error(`Item ${options.targetItemId} is unknown`));
