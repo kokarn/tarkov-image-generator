@@ -516,7 +516,9 @@ const generate = async (options, forceImageIndex) => {
     if (!sptPresets) {
         await loadSptPresets();
     }
-
+    if (!iconData) {
+        refreshCache();
+    }
     try {
         const imgDir = path.join('./', 'generated-images');
         if (!fs.existsSync(imgDir)) fs.mkdirSync(imgDir);
@@ -655,16 +657,10 @@ const startWatcher = () => {
     }
 };
 
-(async () => {
-    startWatcher();
-})();
-
 module.exports = {
     initializeImageGenerator: initialize,
     generateImages: generate,
-    startWatchingCache: () => {
-        startWatcher();
-    },
+    startWatchingCache: startWatcher,
     stopWatchingCache: () => {
         if (watcher) {
             watcher.close();
