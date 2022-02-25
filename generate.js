@@ -507,14 +507,21 @@ const generate = async (options, forceImageIndex) => {
         uploaded: {},
         uploadErrors: {}
     }
+    let mustInitHash = false;
     if (!bsgData) {
         await loadBsgData();
+        mustInitHash = true;
     }
     if (!presets) {
         await loadPresets();
+        mustInitHash = true;
     }
     if (!sptPresets) {
         await loadSptPresets();
+        mustInitHash = true;
+    }
+    if (mustInitHash) {
+        hashCalc.init(bsgData, sptPresets, presets);
     }
     if (!iconData) {
         refreshCache();
