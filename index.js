@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-const { initializeImageGenerator, generateImages, shutdown } = require('./generate');
+const { generateImages } = require('./generate');
 
 (async () => {
     let targetItemId = false;
@@ -24,10 +24,9 @@ const { initializeImageGenerator, generateImages, shutdown } = require('./genera
         forceImage = process.argv[3];
     }
     try {
-        await initializeImageGenerator({hashOnly: targetItemId});
+        //await initializeImageGenerator({hashOnly: targetItemId});
         await generateImages({targetItemId: targetItemId, forceImageIndex: forceImage});
     } catch (error) {
         console.log(error);
     }
-    shutdown();
 })();

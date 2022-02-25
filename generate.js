@@ -13,17 +13,11 @@ const hashCalc = require('./hash-calculator');
 let bsgData = false;
 let presets = false;
 let sptPresets = false;
-let missingIconLink = [];
-let missingGridImage = [];
-let missingBaseImage = [];
-const shortNames = {};
 const itemsByHash = {};
 const itemsById = {};
 
 const iconCacheFolder = process.env.LOCALAPPDATA+'\\Temp\\Battlestate Games\\EscapeFromTarkov\\Icon Cache\\live\\'
 let iconData = {};
-
-let ready = false;
 
 const colors = {
     violet: [
@@ -79,8 +73,8 @@ const getIcon = async (filename, item, options) => {
     let shortName = false;
     if (presets[item.id]) {
         shortName = presets[item.id].name+'';
-    } else if (shortNames[item.id]) {
-        shortName = shortNames[item.id]+'';
+    } else {
+        shortName = item.shortName+'';
     }
     if (!options.response.generated[item.id]) options.response.generated[item.id] = [];
     if (!options.response.uploaded[item.id]) options.response.uploaded[item.id] = [];
@@ -89,7 +83,7 @@ const getIcon = async (filename, item, options) => {
     const sourceImage = await Jimp.read(path.join(iconCacheFolder, filename));
 
     const baseImagePromise = new Promise(resolve => {
-        if(missingBaseImage.includes(item.id)){
+        if(item.needs_base_image){
             console.log(`${item.id} should be uploaded for base-image`);
             fs.copyFileSync(path.join(iconCacheFolder, filename), path.join('./', 'generated-images-missing', `${item.id}-base-image.png`));
         }
@@ -99,7 +93,7 @@ const getIcon = async (filename, item, options) => {
 
     // create icon
     const iconPromise = new Promise(async resolve => {
-        if (options.generateOnlyMissing && !missingIconLink.includes(item.id)) {
+        if (options.generateOnlyMissing && !item.needs_icon_image) {
             resolve(true);
             return;
         }
@@ -120,7 +114,7 @@ const getIcon = async (filename, item, options) => {
 
         promises.push(image.writeAsync(path.join('./', 'generated-images', `${item.id}-icon.jpg`)));
 
-        if(missingIconLink.includes(item.id)){
+        if (item.needs_icon_image) {
             console.log(`${item.id} should be uploaded for icon`);
             promises.push(image.writeAsync(path.join('./', 'generated-images-missing', `${item.id}-icon.jpg`)));
         }
@@ -131,7 +125,7 @@ const getIcon = async (filename, item, options) => {
 
     // create grid image
     const gridImagePromise = new Promise(async resolve => {
-        if (options.generateOnlyMissing && !missingGridImage.includes(item.id)) {
+        if (options.generateOnlyMissing && !item.needs_grid_image) {
             resolve(true);
             return;
         }
@@ -279,7 +273,7 @@ const getIcon = async (filename, item, options) => {
 
         promises.push(image.writeAsync(path.join('./', 'generated-images', `${item.id}-grid-image.jpg`)));
 
-        if(missingGridImage.includes(item.id)){
+        if (item.needs_grid_image) {
             console.log(`${item.id} should be uploaded for grid-image`);
             promises.push(image.writeAsync(path.join('./', 'generated-images-missing', `${item.id}-grid-image.jpg`)));
         }
@@ -315,20 +309,7 @@ const cacheChanged = (timeout) => {
     });
 };
 
-const initialize = async (options) => {
-    defaultOptions = {
-        haltOnHash: false,
-        hashOnly: false
-    };
-    if (!options) options = {};
-    options = {
-        ...defaultOptions,
-        ...options
-    }
-    if (options.haltOnHash) {
-        options.hashOnly = options.haltOnHash;
-    }
-    ready = false;
+const loadBsgData = async () => {
     try {
         bsgData = JSON.parse(fs.readFileSync('./items.json', 'utf8'));
         const stats = fs.statSync('./items.json');
@@ -345,6 +326,9 @@ const initialize = async (options) => {
             }
         }
     }
+};
+
+const loadPresets = async () => {
     try {
         presets = JSON.parse(fs.readFileSync('./item_presets.json', 'utf8'));
         const stats = fs.statSync('./item_presets.json');
@@ -361,6 +345,9 @@ const initialize = async (options) => {
             }
         }
     }
+};
+
+const loadSptPresets = async () => {
     try {
         sptPresets = JSON.parse(fs.readFileSync('./spt_presets.json', 'utf8'));
         const stats = fs.statSync('./spt_presets.json');
@@ -377,18 +364,42 @@ const initialize = async (options) => {
             }
         }
     }
-    let foundBaseImages = false;
-    try {
-        foundBaseImages = JSON.parse((await got('https://tarkov-data-manager.herokuapp.com/data/existing-bases.json')).body);
-    } catch (error) {
-        console.log(`Error downloading found base image list: ${error}`);
+};
+
+const setBackgroundColor = (item) => {
+    item.backgroundColor = 'default';
+    if (bsgData && bsgData[item.id]) {
+        if (bsgData[item.id]._props) {
+            if (colors[bsgData[item.id]._props.BackgroundColor]) {
+                item.backgroundColor = bsgData[item.id]._props.BackgroundColor;
+            }
+        }
+    }
+};
+
+const hashItems = async (options) => {
+    defaultOptions = {
+        targetItemId: false,
+        foundBaseImages: false
+    };
+    if (!options) options = {};
+    options = {
+        ...defaultOptions,
+        ...options
+    }
+    let foundBaseImages = options.foundBaseImages;
+    if (!foundBaseImages) {
+        try {
+            foundBaseImages = JSON.parse((await got('https://tarkov-data-manager.herokuapp.com/data/existing-bases.json')).body);
+        } catch (error) {
+            console.log(`Error downloading found base image list: ${error}`);
+        }
     }
     try {
         let queryType = `itemsByType(type: any)`;
         //let queryParams = 'type: any';
-        if (options.hashOnly) {
-            queryType = `item( id: "${options.hashOnly}")`;
-            //queryParams = `id: "${options.hashOnly}"`;
+        if (options.targetItemId) {
+            queryType = `item( id: "${options.targetItemId}")`;
         }
         const response = await got.post('https://tarkov-tools.com/graphql', {
             body: JSON.stringify({query: `{
@@ -403,34 +414,33 @@ const initialize = async (options) => {
             }),
             responseType: 'json',
         });
-        if (options.hashOnly) {
+        if (options.targetItemId) {
             response.body.data.itemsByType = [response.body.data.item];
         }
         hashCalc.init(bsgData, sptPresets, presets);
-        missingGridImage = [];
-        missingIconLink = [];
-        missingBaseImage = [];
+        let missingGridImage = 0;
+        let missingIcon = 0;
+        let missingBaseImage = 0;
+        let finished = false;
         response.body.data.itemsByType.map((itemData) => {
-            if (itemData.types.includes('disabled')) return;
+            if (finished || itemData.types.includes('disabled')) return;
+            itemData.needs_grid_image = false;
+            itemData.needs_icon_image = false;
+            itemData.needs_base_image = false;
             if(!itemData.gridImageLink){
-                missingGridImage.push(itemData.id);
+                itemData.needs_grid_image = true;
+                missingGridImage++;
             }
 
             if(!itemData.iconLink){
-                missingIconLink.push(itemData.id);
+                itemData.needs_icon_image = true;
+                missingIcon++;
             }
             if (foundBaseImages && !foundBaseImages.includes(itemData.id)) {
-                missingBaseImage.push(itemData.id);
+                itemData.needs_base_image = true;
+                missingBaseImage++;
             }
-            shortNames[itemData.id] = itemData.shortName;
-            itemData['backgroundColor'] = 'default';
-            if(bsgData[itemData.id]){
-                if (bsgData[itemData.id]._props) {
-                    if (colors[bsgData[itemData.id]._props.BackgroundColor]) {
-                        itemData['backgroundColor'] = bsgData[itemData.id]._props.BackgroundColor;
-                    }
-                }
-            }
+            setBackgroundColor(itemData);
 
             try {
                 const hash = hashCalc.getItemHash(itemData.id);
@@ -440,15 +450,32 @@ const initialize = async (options) => {
                 console.log(`Error hashing ${itemData.id}: ${error}`);
             }
             itemsById[itemData.id] = itemData;
-            if (itemData.id == options.haltOnHash) {
+            if (itemData.id == options.targetItemId) {
                 console.log(itemData.hash);
-                process.exit();
+                finished = true;
             }
         });
+        console.log(`Found ${missingGridImage} items missing a grid image, ${missingIcon} missing an icon, and ${missingBaseImage} missing a base image`);
     } catch (error) {
         return Promise.reject(error);
     }
-    ready = true;
+};
+
+const initialize = async (options) => {
+    const defaultOptions = {
+        skipHashing: false
+    };
+    if (typeof options !== 'object') options = {};
+    const opts = {
+        ...defaultOptions,
+        ...options
+    }
+    await loadBsgData();
+    await loadPresets();
+    await loadSptPresets();
+    if (!options.skipHashing) {
+        await hashItems(opts);
+    }
 };
 
 const generate = async (options, forceImageIndex) => {
@@ -480,11 +507,15 @@ const generate = async (options, forceImageIndex) => {
         uploaded: {},
         uploadErrors: {}
     }
-    if (!ready) {
-        return Promise.reject(new Error('Must call initializeImageGenerator before generating images'));
+    if (!bsgData) {
+        await loadBsgData();
     }
-
-    console.log(`Found ${missingGridImage.length} items missing a grid image and ${missingIconLink.length} missing an icon`);
+    if (!presets) {
+        await loadPresets();
+    }
+    if (!sptPresets) {
+        await loadSptPresets();
+    }
 
     try {
         const imgDir = path.join('./', 'generated-images');
@@ -511,8 +542,25 @@ const generate = async (options, forceImageIndex) => {
         return Promise.reject(mkdirError);
     }
 
-    if (options.targetItemId) {
-        const item = itemsById[options.targetItemId];
+    if (options.targetItemId || options.item) {
+        let item = false;
+        if (options.targetItemId) {
+            if (!itemsById[options.targetItemId]) {
+                await hashItems(options);
+            }
+            item = itemsById[options.targetItemId];
+        } else {
+            item = options.item;
+            setBackgroundColor(item);
+            try {
+                item.hash = hashCalc.getItemHash(itemData.id);
+                if (!itemsByHash[item.hash.toString()]) {
+                    itemsByHash[item.hash.toString()] = item;
+                }
+            } catch (error) {
+                console.log(`Error hashing ${itemData.id}: ${error}`);
+            }
+        }
         if (!item) return Promise.reject(new Error(`Item ${options.targetItemId} is unknown`));
         let fileName = `${options.forceImageIndex}.png`;
         if (!options.forceImageIndex) {
@@ -520,7 +568,7 @@ const generate = async (options, forceImageIndex) => {
             if (!hash) return Promise.reject(new Error(`Item ${options.targetItemId} has no hash`));
             if (!iconData[hash]) {
                 try {
-                    if (options.cacheUpdateTimeout === false || item.types.includes('weapon')) {
+                    if (options.cacheUpdateTimeout === false || item.types.includes('gun')) {
                         throw new Error('not found');
                     }
                     await cacheChanged(options.cacheUpdateTimeout);
@@ -564,7 +612,7 @@ const generate = async (options, forceImageIndex) => {
 let watcher = false;
 const watchIconCacheFolder = () => {
     if (watcher) watcher.close();
-    watcher = fs.watch(iconCacheFolder, (eventType, filename) => {
+    watcher = fs.watch(iconCacheFolder, {persistent: false}, (eventType, filename) => {
         if (filename === 'index.json') {
             try {
                 refreshCache();
@@ -584,7 +632,7 @@ let readyWatcher = false;
 const watchIconCacheFolderReady = () => {
     if (readyWatcher) readyWatcher.close();
     const bsgTemp = process.env.LOCALAPPDATA+'\\Temp\\Battlestate Games';
-    readyWatcher = fs.watch(bsgTemp, {recursive: true}, (eventType, filename) => {
+    readyWatcher = fs.watch(bsgTemp, {persistent: false, recursive: true}, (eventType, filename) => {
         console.log(`${eventType} ${filename}`);
         if (filename === 'EscapeFromTarkov\\Icon Cache\\live\\index.json') {
             watchIconCacheFolder();
@@ -594,7 +642,7 @@ const watchIconCacheFolderReady = () => {
     });
 };
 
-(async () => {
+const startWatcher = () => {
     try {
         refreshCache();
     } catch (error) {
@@ -605,12 +653,19 @@ const watchIconCacheFolderReady = () => {
     } catch (error) {
         watchIconCacheFolderReady();
     }
+};
+
+(async () => {
+    startWatcher();
 })();
 
 module.exports = {
     initializeImageGenerator: initialize,
     generateImages: generate,
-    shutdown: () => {
+    startWatchingCache: () => {
+        startWatcher();
+    },
+    stopWatchingCache: () => {
         if (watcher) {
             watcher.close();
             watcher = false;

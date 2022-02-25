@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-const { initializeImageGenerator, generateImages, shutdown } = require('./generate');
+const { initializeImageGenerator, generateImages } = require('./generate');
 
 const testItems = {
     'ak-12 mag': {
@@ -111,10 +111,9 @@ const testItems = {
         const testItem = testItems[testItemKey];
         console.log(`Expected and calculated hash for ${testItemKey}:`)
         console.log(testItem.hash);
-        const hash = await initializeImageGenerator({haltOnHash: testItem.id});
+        await initializeImageGenerator({targetItemId: testItem.id});
         //await generateImages({targetItemId: targetItemId, forceImageIndex: forceImage});
     } catch (error) {
         console.log(error);
     }
-    shutdown();
 })();
