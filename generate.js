@@ -470,9 +470,9 @@ const initialize = async (options) => {
         ...defaultOptions,
         ...options
     }
-    await loadBsgData();
-    await loadPresets();
-    await loadSptPresets();
+    let mustInitHash = await loadBsgData();
+    mustInitHash == await loadPresets() || mustInitHash;
+    mustInitHash == await loadSptPresets() || mustInitHash;
     if (!options.skipHashing) {
         await hashItems(opts);
     }
@@ -507,21 +507,14 @@ const generate = async (options, forceImageIndex) => {
         uploaded: {},
         uploadErrors: {}
     }
-    let mustInitHash = false;
     if (!bsgData) {
         await loadBsgData();
-        mustInitHash = true;
     }
     if (!presets) {
         await loadPresets();
-        mustInitHash = true;
     }
     if (!sptPresets) {
         await loadSptPresets();
-        mustInitHash = true;
-    }
-    if (mustInitHash) {
-        hashCalc.init(bsgData, sptPresets, presets);
     }
     if (!iconData) {
         refreshCache();
@@ -562,6 +555,7 @@ const generate = async (options, forceImageIndex) => {
             item = options.item;
             setBackgroundColor(item);
             try {
+                hashCalc.init(bsgData, sptPresets, presets);
                 item.hash = hashCalc.getItemHash(item.id);
                 if (!itemsByHash[item.hash.toString()]) {
                     itemsByHash[item.hash.toString()] = item;
