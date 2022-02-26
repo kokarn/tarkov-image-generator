@@ -3,6 +3,7 @@
 const fs = require('fs');
 const path = require('path');
 const process = require('process');
+const EventEmitter = require('events');
 const got = require('got');
 
 const Jimp = require('jimp');
@@ -285,27 +286,24 @@ const getIcon = async (filename, item, options) => {
     return true;
 }
 
-const cacheListeners = [];
+const cacheListener = new EventEmitter();
 const refreshCache = () => {
     iconData = JSON.parse(fs.readFileSync(iconCacheFolder+'index.json', 'utf8'));
-    for (let i = 0; i < cacheListeners.length; i++) {
-        cacheListeners[i]();
-    }
-    cacheListeners.length = 0;
+    cacheListener.emit('refresh');
 };
 
 const cacheChanged = (timeout) => {
     return new Promise((resolve, reject) => {
         let to = false;
+        cacheListener.once('refresh', () => {
+            if (to) clearTimeout(to);
+            resolve(new Date());
+        });
         if (timeout) {
             to = setTimeout(() => {
                 reject(new Error(`Cache did not update in ${timeout}ms`));
             }, timeout);
         }
-        cacheListeners.push(() => {
-            clearTimeout(to);
-            resolve(new Date());
-        });
     });
 };
 

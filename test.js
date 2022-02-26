@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-const { initializeImageGenerator, generateImages } = require('./generate');
+const { initializeImageGenerator, generateImages, startWatchingCache } = require('./generate');
 
 const testItems = {
     'ak-12 mag': {
@@ -86,6 +86,7 @@ const testItems = {
 };
 
 (async () => {
+    startWatchingCache();
     let targetItemId = false;
     let forceImage = false;
     for (let i = 2; i < process.argv.length; i++) {
