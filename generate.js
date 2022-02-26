@@ -292,17 +292,17 @@ const refreshCache = () => {
     cacheListener.emit('refresh');
 };
 
-const cacheChanged = (timeout) => {
+const cacheChanged = (timeoutMs) => {
     return new Promise((resolve, reject) => {
-        let to = false;
+        let timeoutId = false;
         cacheListener.once('refresh', () => {
-            if (to) clearTimeout(to);
+            if (timeoutId) clearTimeout(timeoutId);
             resolve(new Date());
         });
-        if (timeout) {
-            to = setTimeout(() => {
-                reject(new Error(`Cache did not update in ${timeout}ms`));
-            }, timeout);
+        if (timeoutMs) {
+            timeoutId = setTimeout(() => {
+                reject(new Error(`Cache did not update in ${timeoutMs}ms`));
+            }, timeoutMs);
         }
     });
 };
